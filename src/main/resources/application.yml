@@ -43,16 +43,16 @@ spring:
   # redis配置
   redis:
     database: 9
-    host:
-    password:
+    host: ${REDIS_HOST:redis}
+    password: ${REDIS_PASSWORD:}
     timeout: 20000
-    port: 6379
+    port: ${REDIS_PORT:6379}
 
   # mysql数据库配置
   datasource:
-    url: jdbc:mysql://x.x.x.x:3306/langhaiblogs?userUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8
-    username:
-    password:
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DB:langhaiblogs}?userUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
 
@@ -77,9 +77,9 @@ pagehelper:
 
 # minio文件存储配置信息
 minio:
-  endpoint: http://127.0.0.1:9000
-  accessKey: minioadmin
-  secretKey: minioadmin
+  endpoint: ${MINIO_ENDPOINT:http://minio:9000}
+  accessKey: ${MINIO_ACCESS_KEY:minioadmin}
+  secretKey: ${MINIO_SECRET_KEY:minioadmin}
 
 # 配置es相关信息
 es:
