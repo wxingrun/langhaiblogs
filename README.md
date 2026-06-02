@@ -18,6 +18,14 @@
 linux ==>> nohup java -jar langhai-blogs.jar > langhai.log &  
 windows ==>> java -jar langhai-blogs.jar
 
+Docker 一键启动：
+1. 在项目根目录执行 `docker-compose up -d`，首次启动会自动构建应用镜像并启动 MySQL、Redis、MinIO 与博客服务。
+2. 启动完成后访问 `http://localhost:2086` 即可查看博客首页。
+3. MinIO 控制台地址为 `http://localhost:9001`，默认账号密码均为 `minioadmin`。
+4. MySQL 数据持久化目录为 `./docker/mysql/data`，Redis 数据持久化目录为 `./docker/redis/data`，MinIO 数据持久化目录为 `./docker/minio/data`。
+5. 首次初始化会自动执行 `sql/langhaiblogs.sql`；如果已经存在 MySQL 数据目录，初始化脚本不会重复执行。
+6. 停止服务执行 `docker-compose down`，保留数据；如需连同容器一起重建，可先删除 `./docker` 目录后重新启动。
+
 技术选型：  
 springboot 后端快速构建框架  
 thymeleaf 数据模板引擎  

@@ -24,13 +24,13 @@ spring:
   # 邮件发送配置
   mail:
     # 配置SMTP的服务器地址
-    host: smtp.qq.com
+    host: ${MAIL_HOST:smtp.qq.com}
     # 发送者的QQ邮箱
-    username:
+    username: ${MAIL_USERNAME:}
     # 配置秘钥，授权码（不是QQ密码）
-    password:
+    password: ${MAIL_PASSWORD:}
     # 端口号配置
-    port: 587
+    port: ${MAIL_PORT:587}
     # 邮件的编码格式
     default-encoding: utf-8
     # 配置SSL加密
@@ -42,17 +42,17 @@ spring:
 
   # redis配置
   redis:
-    database: ${REDIS_DB:9}
+    database: ${REDIS_DATABASE:9}
     host: ${REDIS_HOST:redis}
     password: ${REDIS_PASSWORD:}
-    timeout: 20000
+    timeout: ${REDIS_TIMEOUT:20000}
     port: ${REDIS_PORT:6379}
 
   # mysql数据库配置
   datasource:
-    url: ${MYSQL_URL:jdbc:mysql://mysql:3306/langhaiblogs?userUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8}
-    username: ${MYSQL_USERNAME:root}
-    password: ${MYSQL_PASSWORD:root}
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:langhaiblogs}?userUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8
+    username: ${MYSQL_USERNAME:}
+    password: ${MYSQL_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
 
@@ -62,11 +62,11 @@ spring:
       max-request-size: 50MB
 
   rabbitmq:
-    host: 127.0.0.1 # 主机名
-    port: 5672 # 端口
-    virtual-host: / # 虚拟主机
-    username: xxx # 用户名
-    password: xxx # 密码
+    host: ${RABBITMQ_HOST:127.0.0.1} # 主机名
+    port: ${RABBITMQ_PORT:5672} # 端口
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST:/} # 虚拟主机
+    username: ${RABBITMQ_USERNAME:xxx} # 用户名
+    password: ${RABBITMQ_PASSWORD:xxx} # 密码
 
 #  profiles:
 #    active: test
@@ -83,10 +83,10 @@ minio:
 
 # 配置es相关信息
 es:
-  ip: 127.0.0.1
-  port: 9200
-  userName: xxx
-  password: xxx
+  ip: ${ES_HOST:127.0.0.1}
+  port: ${ES_PORT:9200}
+  userName: ${ES_USERNAME:xxx}
+  password: ${ES_PASSWORD:xxx}
 
 logging:
   level:
@@ -94,9 +94,9 @@ logging:
 
 netty:
   # 监听websocket连接的端口
-  port: 20202
+  port: ${NETTY_PORT:20202}
   # websocket连接地址
-  ws: ws://127.0.0.1:${netty.port}/ws
+  ws: ws://${NETTY_WS_HOST:127.0.0.1}:${netty.port}/ws
 
 #flowable:
 #  standalone:
