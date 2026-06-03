@@ -1,0 +1,17 @@
+diff --git a/pom.xml b/pom.xml
+index 9b942d2..c0e04aa 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -131,12 +131,6 @@
+             <groupId>org.springframework.boot</groupId>
+             <artifactId>spring-boot-starter-test</artifactId>
+             <scope>test</scope>
+-            <exclusions>
+-                <exclusion>
+-                    <groupId>org.junit.vintage</groupId>
+-                    <artifactId>junit-vintage-engine</artifactId>
+-                </exclusion>
+-            </exclusions>
+         </dependency>
+         <!-- elasticsearch -->
+         <dependency>
