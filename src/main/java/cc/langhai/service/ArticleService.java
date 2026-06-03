@@ -86,6 +86,17 @@ public interface ArticleService {
     void deleteArticle(Long id);
 
     /**
+     * 获取用户文章分页列表
+     *
+     * @param page         页码
+     * @param size         每页条数
+     * @param title        文章标题
+     * @param abstractText 文章摘要
+     * @return 文章分页对象
+     */
+    PageInfo<Article> getUserArticlePage(Integer page, Integer size, String title, String abstractText);
+
+    /**
      * 文章搜索功能
      *
      * @param size              显示的条数

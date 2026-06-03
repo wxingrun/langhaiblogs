@@ -13,7 +13,6 @@ import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -101,13 +100,10 @@ public class ArticleController {
     public JSONObject articleList(@RequestParam(defaultValue = "1") Integer page,
                                   @RequestParam(defaultValue = "10") Integer limit,
                                   String title, String abstractText) {
-        // 开启分页助手
-        PageHelper.startPage(page, limit);
-        List<Article> allArticle = articleService.getAllArticle(title, abstractText, "user");
+        PageInfo<Article> pageInfo = articleService.getUserArticlePage(page, limit, title, abstractText);
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("code", 0);
-        jsonObject.put("data", allArticle);
-        PageInfo<Article> pageInfo = new PageInfo<>(allArticle);
+        jsonObject.put("data", pageInfo.getList());
         jsonObject.put("count", pageInfo.getTotal());
         return jsonObject;
     }
@@ -122,15 +118,12 @@ public class ArticleController {
     public JSONObject articleListCard(@RequestParam(defaultValue = "1") Integer page,
                                       @RequestParam(defaultValue = "10") Integer limit,
                                       String title, String abstractText){
-        PageHelper.startPage(page, limit);
-
+        PageInfo<Article> pageInfo = articleService.getUserArticlePage(page, limit, title, abstractText);
         JSONObject jsonObject = new JSONObject();
-        List<Article> allArticle = articleService.getAllArticle(title, abstractText, "user");
-        PageInfo<Article> pageInfo = new PageInfo<>(allArticle);
         jsonObject.put("count", pageInfo.getTotal());
         jsonObject.put("msg", "not data");
         jsonObject.put("code", 0);
-        // 所有的文章 结果处理
+        List<Article> allArticle = pageInfo.getList();
         JSONArray articleArray = new JSONArray();
         if(CollectionUtil.isNotEmpty(allArticle)){
             for (Article article : allArticle) {

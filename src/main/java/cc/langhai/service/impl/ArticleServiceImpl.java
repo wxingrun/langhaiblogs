@@ -10,13 +10,13 @@ import cc.langhai.mq.config.MqConstants;
 import cc.langhai.response.ArticleReturnCode;
 import cc.langhai.service.*;
 import cc.langhai.utils.DateUtil;
+import cc.langhai.utils.PageUtil;
 import cc.langhai.utils.UserContext;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -239,12 +239,14 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
+    public PageInfo<Article> getUserArticlePage(Integer page, Integer size, String title, String abstractText) {
+        Long userId = UserContext.getUserId();
+        return PageUtil.page(page, size, () -> articleMapper.getAllArticle(userId, title, abstractText));
+    }
+
+    @Override
     public PageInfo<Article> search(Integer page, Integer size, String searchArticleStr, Long labelId) {
-        // 开启分页助手
-        PageHelper.startPage(page, size);
-        List<Article> allArticlePublicShow = articleMapper.getAllArticlePublicShow(searchArticleStr, labelId);
-        PageInfo<Article> pageInfo = new PageInfo<>(allArticlePublicShow);
-        return pageInfo;
+        return PageUtil.page(page, size, () -> articleMapper.getAllArticlePublicShow(searchArticleStr, labelId));
     }
 
     @Override
