@@ -163,4 +163,16 @@ public interface ArticleService {
      */
     void check(Long id, Boolean checkFlag);
 
+    /**
+     * 分页获取用户文章列表
+     *
+     * @param page 页码
+     * @param size 每页大小
+     * @param title 标题
+     * @param abstractText 摘要
+     * @param param 参数
+     * @return 分页信息
+     */
+    PageInfo<Article> getAllArticlePage(Integer page, Integer size, String title, String abstractText, String param);
+
 }

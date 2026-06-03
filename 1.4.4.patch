@@ -1,0 +1,128 @@
+diff --git a/src/main/java/cc/langhai/controller/article/ArticleController.java b/src/main/java/cc/langhai/controller/article/ArticleController.java
+index f6783ab..d3edee0 100644
+--- a/src/main/java/cc/langhai/controller/article/ArticleController.java
++++ b/src/main/java/cc/langhai/controller/article/ArticleController.java
+@@ -13,7 +13,6 @@ import cn.hutool.core.util.ObjectUtil;
+ import cn.hutool.core.util.StrUtil;
+ import com.alibaba.fastjson.JSONArray;
+ import com.alibaba.fastjson.JSONObject;
+-import com.github.pagehelper.PageHelper;
+ import com.github.pagehelper.PageInfo;
+ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.stereotype.Controller;
+@@ -101,13 +100,10 @@ public class ArticleController {
+     public JSONObject articleList(@RequestParam(defaultValue = "1") Integer page,
+                                   @RequestParam(defaultValue = "10") Integer limit,
+                                   String title, String abstractText) {
+-        // 开启分页助手
+-        PageHelper.startPage(page, limit);
+-        List<Article> allArticle = articleService.getAllArticle(title, abstractText, "user");
++        PageInfo<Article> pageInfo = articleService.getAllArticlePage(page, limit, title, abstractText, "user");
+         JSONObject jsonObject = new JSONObject();
+         jsonObject.put("code", 0);
+-        jsonObject.put("data", allArticle);
+-        PageInfo<Article> pageInfo = new PageInfo<>(allArticle);
++        jsonObject.put("data", pageInfo.getList());
+         jsonObject.put("count", pageInfo.getTotal());
+         return jsonObject;
+     }
+@@ -122,11 +118,9 @@ public class ArticleController {
+     public JSONObject articleListCard(@RequestParam(defaultValue = "1") Integer page,
+                                       @RequestParam(defaultValue = "10") Integer limit,
+                                       String title, String abstractText){
+-        PageHelper.startPage(page, limit);
+-
+         JSONObject jsonObject = new JSONObject();
+-        List<Article> allArticle = articleService.getAllArticle(title, abstractText, "user");
+-        PageInfo<Article> pageInfo = new PageInfo<>(allArticle);
++        PageInfo<Article> pageInfo = articleService.getAllArticlePage(page, limit, title, abstractText, "user");
++        List<Article> allArticle = pageInfo.getList();
+         jsonObject.put("count", pageInfo.getTotal());
+         jsonObject.put("msg", "not data");
+         jsonObject.put("code", 0);
+diff --git a/src/main/java/cc/langhai/controller/article/SystemArticleController.java b/src/main/java/cc/langhai/controller/article/SystemArticleController.java
+index 6ddb4a2..03345ea 100644
+--- a/src/main/java/cc/langhai/controller/article/SystemArticleController.java
++++ b/src/main/java/cc/langhai/controller/article/SystemArticleController.java
+@@ -7,7 +7,6 @@ import cc.langhai.response.ResultResponse;
+ import cc.langhai.service.ArticleService;
+ import cn.hutool.core.util.ObjectUtil;
+ import com.alibaba.fastjson.JSONObject;
+-import com.github.pagehelper.PageHelper;
+ import com.github.pagehelper.PageInfo;
+ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.stereotype.Controller;
+@@ -52,13 +51,10 @@ public class SystemArticleController {
+     public JSONObject articleList(@RequestParam(defaultValue = "1") Integer page,
+                                   @RequestParam(defaultValue = "10") Integer limit,
+                                   String title, String abstractText){
+-        // 开启分页助手
+-        PageHelper.startPage(page, limit);
+-        List<Article> allArticle = articleService.getAllArticle(title, abstractText, "system");
++        PageInfo<Article> pageInfo = articleService.getAllArticlePage(page, limit, title, abstractText, "system");
+         JSONObject jsonObject = new JSONObject();
+         jsonObject.put("code", 0);
+-        jsonObject.put("data", allArticle);
+-        PageInfo<Article> pageInfo = new PageInfo<>(allArticle);
++        jsonObject.put("data", pageInfo.getList());
+         jsonObject.put("count", pageInfo.getTotal());
+ 
+         return jsonObject;
+diff --git a/src/main/java/cc/langhai/service/ArticleService.java b/src/main/java/cc/langhai/service/ArticleService.java
+index d1acb41..60f30f0 100644
+--- a/src/main/java/cc/langhai/service/ArticleService.java
++++ b/src/main/java/cc/langhai/service/ArticleService.java
+@@ -163,4 +163,16 @@ public interface ArticleService {
+      */
+     void check(Long id, Boolean checkFlag);
+ 
++    /**
++     * 分页获取用户文章列表
++     *
++     * @param page 页码
++     * @param size 每页大小
++     * @param title 标题
++     * @param abstractText 摘要
++     * @param param 参数
++     * @return 分页信息
++     */
++    PageInfo<Article> getAllArticlePage(Integer page, Integer size, String title, String abstractText, String param);
++
+ }
+diff --git a/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java b/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
+index f611899..58cd0ad 100644
+--- a/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
++++ b/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
+@@ -10,6 +10,7 @@ import cc.langhai.mq.config.MqConstants;
+ import cc.langhai.response.ArticleReturnCode;
+ import cc.langhai.service.*;
+ import cc.langhai.utils.DateUtil;
++import cc.langhai.utils.PageUtil;
+ import cc.langhai.utils.UserContext;
+ import cn.hutool.core.collection.CollectionUtil;
+ import cn.hutool.core.util.ObjectUtil;
+@@ -240,11 +241,8 @@ public class ArticleServiceImpl implements ArticleService {
+ 
+     @Override
+     public PageInfo<Article> search(Integer page, Integer size, String searchArticleStr, Long labelId) {
+-        // 开启分页助手
+-        PageHelper.startPage(page, size);
+-        List<Article> allArticlePublicShow = articleMapper.getAllArticlePublicShow(searchArticleStr, labelId);
+-        PageInfo<Article> pageInfo = new PageInfo<>(allArticlePublicShow);
+-        return pageInfo;
++        return PageUtil.page(page, size, 1, 10, 
++                () -> articleMapper.getAllArticlePublicShow(searchArticleStr, labelId));
+     }
+ 
+     @Override
+@@ -483,4 +481,10 @@ public class ArticleServiceImpl implements ArticleService {
+         }
+     }
+ 
++    @Override
++    public PageInfo<Article> getAllArticlePage(Integer page, Integer size, String title, String abstractText, String param) {
++        return PageUtil.page(page, size, 1, 10, 
++                () -> getAllArticle(title, abstractText, param));
++    }
++
+ }
