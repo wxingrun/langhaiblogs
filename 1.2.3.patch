@@ -1,0 +1,129 @@
+diff --git a/src/main/java/cc/langhai/controller/article/ArticleController.java b/src/main/java/cc/langhai/controller/article/ArticleController.java
+index f6783ab..17f5109 100644
+--- a/src/main/java/cc/langhai/controller/article/ArticleController.java
++++ b/src/main/java/cc/langhai/controller/article/ArticleController.java
+@@ -4,6 +4,7 @@ import cc.langhai.domain.Article;
+ import cc.langhai.domain.Label;
+ import cc.langhai.domain.User;
+ import cc.langhai.dto.ArticleDTO;
++import cc.langhai.exception.BusinessException;
+ import cc.langhai.response.ArticleReturnCode;
+ import cc.langhai.response.ResultResponse;
+ import cc.langhai.service.*;
+@@ -378,6 +379,9 @@ public class ArticleController {
+     @ResponseBody
+     @PostMapping("/submitComment")
+     public ResultResponse<Void> submitComment(Long articleId, String content, HttpServletRequest httpRequest, HttpSession session) {
++        if (ObjectUtil.isNull(articleId) || StrUtil.isBlank(content)) {
++            throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_PARAM_FAIL_00013);
++        }
+         articleService.submitComment(articleId, content, session);
+         return ResultResponse.success(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_OK_00012);
+     }
+diff --git a/src/main/resources/templates/blogs-new/read.html b/src/main/resources/templates/blogs-new/read.html
+index 71ffffb..4c6569b 100644
+--- a/src/main/resources/templates/blogs-new/read.html
++++ b/src/main/resources/templates/blogs-new/read.html
+@@ -170,18 +170,32 @@
+ 
+         // 提交文章评论
+         $(function () {
++            var commentSubmitting = false;
+             $("#submitComment").on("click", function () {
++                if (commentSubmitting) {
++                    return;
++                }
++                var content = $.trim($("#content").val());
++                if (content === '') {
++                    layer.msg("评论内容不能为空。", {
++                        icon: 2,
++                        time: 2000
++                    });
++                    return;
++                }
++                commentSubmitting = true;
++                $(this).text("提交中...");
+                 $.ajax({
+                     url: "/article/submitComment",
+                     async: true,
+                     type: "POST",
+                     data: {
+                         "articleId": $("#articleId").val(),
+-                        "content": $("#content").val()
++                        "content": content
+                     },
+                     success: function (data) {
+-                        $("#content").val('');
+                         if (data.code == 200) {
++                            $("#content").val('');
+                             layer.msg(data.message, {
+                                 icon: 1,
+                                 time: 2000
+@@ -193,7 +207,17 @@
+                                 icon: 2,
+                                 time: 2000
+                             });
++                            commentSubmitting = false;
++                            $("#submitComment").text("提交评论");
+                         }
++                    },
++                    error: function () {
++                        layer.msg("评论提交失败，请稍后重试。", {
++                            icon: 2,
++                            time: 2000
++                        });
++                        commentSubmitting = false;
++                        $("#submitComment").text("提交评论");
+                     }
+                 })
+             });
+diff --git a/src/main/resources/templates/blogs/article/articleShow.html b/src/main/resources/templates/blogs/article/articleShow.html
+index 3cd8353..ba8941c 100644
+--- a/src/main/resources/templates/blogs/article/articleShow.html
++++ b/src/main/resources/templates/blogs/article/articleShow.html
+@@ -126,25 +126,43 @@
+ 
+ 			// 提交文章评论
+ 			$(function () {
++				var commentSubmitting = false;
+ 				$("#submitComment").on("click", function () {
++					if (commentSubmitting) {
++						return;
++					}
++					var content = $.trim($("#content").val());
++					if (content === '') {
++						$("#vCodeStatus").html("评论内容不能为空。");
++						return;
++					}
++					commentSubmitting = true;
++					$(this).text("提交中...");
+ 					$.ajax({
+ 						url: "/article/submitComment",
+ 						async: true,
+ 						type: "POST",
+ 						data: {
+ 							"articleId": $("#articleId").val(),
+-							"content": $("#content").val()
++							"content": content
+ 						},
+ 						success: function (data) {
+-							$("#content").val('');
+ 							if(data.code == 200){
++								$("#content").val('');
+ 								$("#vCodeStatus").html(data.message);
+ 								setTimeout(function(){
+ 									window.location.reload();
+ 								}, 1000);
+ 							}else {
+ 								$("#vCodeStatus").html(data.message);
++								commentSubmitting = false;
++								$("#submitComment").text("提交评论");
+ 							}
++						},
++						error: function () {
++							$("#vCodeStatus").html("评论提交失败，请稍后重试。");
++							commentSubmitting = false;
++							$("#submitComment").text("提交评论");
+ 						}
+ 					})
+ 				});

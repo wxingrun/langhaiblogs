@@ -126,25 +126,43 @@
 
 			// 提交文章评论
 			$(function () {
+				var commentSubmitting = false;
 				$("#submitComment").on("click", function () {
+					if (commentSubmitting) {
+						return;
+					}
+					var content = $.trim($("#content").val());
+					if (content === '') {
+						$("#vCodeStatus").html("评论内容不能为空。");
+						return;
+					}
+					commentSubmitting = true;
+					$(this).text("提交中...");
 					$.ajax({
 						url: "/article/submitComment",
 						async: true,
 						type: "POST",
 						data: {
 							"articleId": $("#articleId").val(),
-							"content": $("#content").val()
+							"content": content
 						},
 						success: function (data) {
-							$("#content").val('');
 							if(data.code == 200){
+								$("#content").val('');
 								$("#vCodeStatus").html(data.message);
 								setTimeout(function(){
 									window.location.reload();
 								}, 1000);
 							}else {
 								$("#vCodeStatus").html(data.message);
+								commentSubmitting = false;
+								$("#submitComment").text("提交评论");
 							}
+						},
+						error: function () {
+							$("#vCodeStatus").html("评论提交失败，请稍后重试。");
+							commentSubmitting = false;
+							$("#submitComment").text("提交评论");
 						}
 					})
 				});

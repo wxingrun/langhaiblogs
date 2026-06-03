@@ -4,6 +4,7 @@ import cc.langhai.domain.Article;
 import cc.langhai.domain.Label;
 import cc.langhai.domain.User;
 import cc.langhai.dto.ArticleDTO;
+import cc.langhai.exception.BusinessException;
 import cc.langhai.response.ArticleReturnCode;
 import cc.langhai.response.ResultResponse;
 import cc.langhai.service.*;
@@ -378,6 +379,9 @@ public class ArticleController {
     @ResponseBody
     @PostMapping("/submitComment")
     public ResultResponse<Void> submitComment(Long articleId, String content, HttpServletRequest httpRequest, HttpSession session) {
+        if (ObjectUtil.isNull(articleId) || StrUtil.isBlank(content)) {
+            throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_PARAM_FAIL_00013);
+        }
         articleService.submitComment(articleId, content, session);
         return ResultResponse.success(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_OK_00012);
     }
