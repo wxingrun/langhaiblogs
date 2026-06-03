@@ -1,13 +1,16 @@
 package cc.langhai.service.impl;
 
+import cc.langhai.config.constant.ArticleConstant;
 import cc.langhai.domain.Article;
 import cc.langhai.domain.ArticleComment;
 import cc.langhai.exception.BusinessException;
 import cc.langhai.mapper.ArticleCommentMapper;
 import cc.langhai.response.ArticleCommentReturnCode;
+import cc.langhai.response.ArticleReturnCode;
 import cc.langhai.service.IArticleCommentService;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +52,25 @@ public class ArticleCommentServiceImpl extends ServiceImpl<ArticleCommentMapper,
     public List<ArticleComment> getAllArticleComment(String content) {
         List<ArticleComment> result = articleCommentMapper.getAllArticleComment(content);
         return result;
+    }
+
+    @Override
+    public void submitComment(Long articleId, String content, Long userId) {
+        String commentContent = StrUtil.trim(content);
+        if (ObjectUtil.isNull(articleId) || ObjectUtil.isNull(userId) || StrUtil.isBlank(commentContent)) {
+            throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_PARAM_FAIL_00013);
+        }
+        List<ArticleComment> list = this.list(Wrappers.<ArticleComment>lambdaQuery()
+                .eq(ArticleComment::getUserId, userId)
+                .eq(ArticleComment::getArticleId, articleId));
+        if (list.size() >= ArticleConstant.ARTICLE_COMMENT_USER_COUNT) {
+            throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_COUNT_FAIL_00015);
+        }
+        ArticleComment articleComment = new ArticleComment();
+        articleComment.setArticleId(articleId);
+        articleComment.setContent(commentContent);
+        articleComment.setUserId(userId);
+        this.save(articleComment);
     }
 
     @Override

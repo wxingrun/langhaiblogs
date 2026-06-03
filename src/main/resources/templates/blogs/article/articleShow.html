@@ -126,25 +126,51 @@
 
 			// 提交文章评论
 			$(function () {
-				$("#submitComment").on("click", function () {
+				var commentSubmitting = false;
+				var $submitComment = $("#submitComment");
+				var defaultSubmitText = $submitComment.text();
+
+				function toggleSubmitStatus(submitting) {
+					commentSubmitting = submitting;
+					$submitComment.text(submitting ? "提交中..." : defaultSubmitText);
+					$submitComment.css({
+						"pointer-events": submitting ? "none" : "",
+						"opacity": submitting ? "0.6" : ""
+					});
+				}
+
+				$submitComment.on("click", function () {
+					var content = $.trim($("#content").val());
+					if (commentSubmitting) {
+						return;
+					}
+					if (!content) {
+						$("#vCodeStatus").html("评论内容不能为空。");
+						return;
+					}
+					toggleSubmitStatus(true);
 					$.ajax({
 						url: "/article/submitComment",
 						async: true,
 						type: "POST",
 						data: {
 							"articleId": $("#articleId").val(),
-							"content": $("#content").val()
+							"content": content
 						},
 						success: function (data) {
-							$("#content").val('');
+							$("#vCodeStatus").html(data.message);
 							if(data.code == 200){
-								$("#vCodeStatus").html(data.message);
+								$("#content").val('');
 								setTimeout(function(){
 									window.location.reload();
 								}, 1000);
-							}else {
-								$("#vCodeStatus").html(data.message);
 							}
+						},
+						error: function () {
+							$("#vCodeStatus").html("评论提交失败，请稍后重试。");
+						},
+						complete: function () {
+							toggleSubmitStatus(false);
 						}
 					})
 				});

@@ -21,7 +21,6 @@ import org.springframework.ui.Model;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -377,7 +376,7 @@ public class ArticleController {
      */
     @ResponseBody
     @PostMapping("/submitComment")
-    public ResultResponse<Void> submitComment(Long articleId, String content, HttpServletRequest httpRequest, HttpSession session) {
+    public ResultResponse<Void> submitComment(Long articleId, String content, HttpSession session) {
         articleService.submitComment(articleId, content, session);
         return ResultResponse.success(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_OK_00012);
     }

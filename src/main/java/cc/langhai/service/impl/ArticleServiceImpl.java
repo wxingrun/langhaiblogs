@@ -15,7 +15,6 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSON;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.elasticsearch.action.search.SearchRequest;
@@ -351,22 +350,7 @@ public class ArticleServiceImpl implements ArticleService {
         if (ObjectUtil.isNull(user)) {
             throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_USER_FAIL_00014);
         }
-        // 参数合法校验
-        if (ObjectUtil.isNull(articleId) || StrUtil.isBlank(content)) {
-            throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_PARAM_FAIL_00013);
-        }
-        // 当前用户对此篇文章只能评价三条
-        List<ArticleComment> list = articleCommentService.list(Wrappers.<ArticleComment>lambdaQuery()
-                .eq(ArticleComment::getUserId, user.getId())
-                .eq(ArticleComment::getArticleId, articleId));
-        if (list.size() >= ArticleConstant.ARTICLE_COMMENT_USER_COUNT) {
-            throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_COUNT_FAIL_00015);
-        }
-        ArticleComment articleComment = new ArticleComment();
-        articleComment.setArticleId(articleId);
-        articleComment.setContent(content);
-        articleComment.setUserId(user.getId());
-        articleCommentService.save(articleComment);
+        articleCommentService.submitComment(articleId, content, user.getId());
     }
 
     @Override

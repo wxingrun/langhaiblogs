@@ -170,18 +170,40 @@
 
         // 提交文章评论
         $(function () {
-            $("#submitComment").on("click", function () {
+            var commentSubmitting = false;
+            var $submitComment = $("#submitComment");
+            var defaultSubmitText = $submitComment.text();
+
+            function toggleSubmitStatus(submitting) {
+                commentSubmitting = submitting;
+                $submitComment.prop("disabled", submitting);
+                $submitComment.text(submitting ? "提交中..." : defaultSubmitText);
+            }
+
+            $submitComment.on("click", function () {
+                var content = $.trim($("#content").val());
+                if (commentSubmitting) {
+                    return;
+                }
+                if (!content) {
+                    layer.msg("评论内容不能为空。", {
+                        icon: 2,
+                        time: 2000
+                    });
+                    return;
+                }
+                toggleSubmitStatus(true);
                 $.ajax({
                     url: "/article/submitComment",
                     async: true,
                     type: "POST",
                     data: {
                         "articleId": $("#articleId").val(),
-                        "content": $("#content").val()
+                        "content": content
                     },
                     success: function (data) {
-                        $("#content").val('');
                         if (data.code == 200) {
+                            $("#content").val('');
                             layer.msg(data.message, {
                                 icon: 1,
                                 time: 2000
@@ -194,6 +216,15 @@
                                 time: 2000
                             });
                         }
+                    },
+                    error: function () {
+                        layer.msg("评论提交失败，请稍后重试。", {
+                            icon: 2,
+                            time: 2000
+                        });
+                    },
+                    complete: function () {
+                        toggleSubmitStatus(false);
                     }
                 })
             });

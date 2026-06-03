@@ -40,6 +40,15 @@ public interface IArticleCommentService extends IService<ArticleComment> {
     List<ArticleComment> getAllArticleComment(String content);
 
     /**
+     * 提交文章评论
+     *
+     * @param articleId 文章id
+     * @param content 评论内容
+     * @param userId 用户id
+     */
+    void submitComment(Long articleId, String content, Long userId);
+
+    /**
      * 删除文章评论
      *
      * @param id 文章评论id
