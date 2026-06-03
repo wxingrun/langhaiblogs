@@ -1,0 +1,175 @@
+diff --git a/sql/langhaiblogs.sql b/sql/langhaiblogs.sql
+index e2bae61..1a40ca8 100644
+--- a/sql/langhaiblogs.sql
++++ b/sql/langhaiblogs.sql
+@@ -224,4 +224,19 @@ CREATE TABLE `visit`  (
+   PRIMARY KEY (`id`) USING BTREE
+ ) ENGINE = InnoDB AUTO_INCREMENT = 175721 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+ 
++SET FOREIGN_KEY_CHECKS = 0;
++
++-- ----------------------------
++-- Table structure for article_like
++-- ----------------------------
++DROP TABLE IF EXISTS `article_like`;
++CREATE TABLE `article_like`  (
++  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '点赞id',
++  `article_id` bigint(20) NOT NULL COMMENT '文章id',
++  `user_id` bigint(20) NOT NULL COMMENT '用户id',
++  `create_time` datetime NOT NULL COMMENT '点赞时间',
++  PRIMARY KEY (`id`) USING BTREE,
++  UNIQUE INDEX `uk_article_user` (`article_id`, `user_id`) USING BTREE
++) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章点赞表' ROW_FORMAT = DYNAMIC;
++
+ SET FOREIGN_KEY_CHECKS = 1;
+diff --git a/src/main/resources/templates/blogs-new/read.html b/src/main/resources/templates/blogs-new/read.html
+index 71ffffb..e8d5051 100644
+--- a/src/main/resources/templates/blogs-new/read.html
++++ b/src/main/resources/templates/blogs-new/read.html
+@@ -54,6 +54,7 @@
+                                         作者：<a href="/" target="_blank" class="fc-link" th:text="${article.author}"></a>
+                                     </small>
+                                     <small class="ml10">围观群众：<i class="readcount" th:text="${article.heat}"></i></small>
++                                    <small class="ml10">点赞：<span id="likeCount">0</span> <a href="javascript:void(0)" id="likeBtn">👍</a></small>
+                                     <small class="ml10">更新于 <label th:text="${article.updateTimeShow}"></label> </small>
+                                     <small class="ml10">
+                                         使用以前的显示 <a th:href="'/article/articleShow?id=' + ${article.id} + '&password=' + ${password}">以前的显示器</a>
+@@ -203,14 +204,61 @@
+         // 图片放大处理
+         $("body").on("click", "img", function(){
+             if ($(this).hasClass("zoomed")) {
+-                $(this).removeClass("zoomed"); // 移除放大样式类
++                $(this).removeClass("zoomed");
+                 $(this).attr("style", originalStyle);
+             } else {
+                 originalStyle = $(this).attr("style");
+-                $(this).addClass("zoomed"); // 添加放大样式类
++                $(this).addClass("zoomed");
+                 $(this).attr("style", "width: 100%;");
+             }
+         })
++
++        $(function() {
++            var articleId = $("#articleId").val();
++            if (articleId) {
++                $.ajax({
++                    url: "/articleLike/count",
++                    type: "GET",
++                    data: { articleId: articleId },
++                    success: function(data) {
++                        if (data.code == 200) {
++                            $("#likeCount").text(data.result.count);
++                        }
++                    }
++                });
++                $.ajax({
++                    url: "/articleLike/status",
++                    type: "GET",
++                    data: { articleId: articleId },
++                    success: function(data) {
++                        if (data.code == 200 && data.result.liked) {
++                            $("#likeBtn").text("❤️");
++                        }
++                    }
++                });
++            }
++            $("#likeBtn").on("click", function() {
++                var aid = $("#articleId").val();
++                if (!aid) return;
++                $.ajax({
++                    url: "/articleLike/toggle",
++                    type: "POST",
++                    data: { articleId: aid },
++                    success: function(data) {
++                        if (data.code == 200) {
++                            $("#likeCount").text(data.result.count);
++                            $("#likeBtn").text(data.result.liked ? "❤️" : "👍");
++                        } else if (data.code == 401) {
++                            layer.alert("请先登录后再点赞", function() {
++                                window.location.href = "/user/loginPage";
++                            });
++                        } else {
++                            layer.msg(data.message, { icon: 2 });
++                        }
++                    }
++                });
++            });
++        })
+     </script>
+     <script>
+         $(function() {
+diff --git a/src/main/resources/templates/blogs/article/articleShow.html b/src/main/resources/templates/blogs/article/articleShow.html
+index 3cd8353..58bbeb4 100644
+--- a/src/main/resources/templates/blogs/article/articleShow.html
++++ b/src/main/resources/templates/blogs/article/articleShow.html
+@@ -46,6 +46,7 @@
+ 								<div>
+ 									<span th:text="${article.title}"></span>
+ 									<span th:text="'浪海值：' + ${article.heat} + '度'"></span><br />
++									<span>点赞：<span id="likeCount">0</span> <a href="javascript:void(0)" id="likeBtn">👍</a></span><br />
+ 									<span th:text="'文章标签：' + ${article.labelContent}"></span><br />
+ 									<span th:text="'文章摘要：' + ${article.abstractText}"></span><br />
+ 									<span>
+@@ -154,14 +155,60 @@
+ 			// 图片放大处理
+ 			$("body").on("click", "img", function(){
+ 				if ($(this).hasClass("zoomed")) {
+-					$(this).removeClass("zoomed"); // 移除放大样式类
++					$(this).removeClass("zoomed");
+ 					$(this).attr("style", originalStyle);
+ 				} else {
+ 					originalStyle = $(this).attr("style");
+-					$(this).addClass("zoomed"); // 添加放大样式类
++					$(this).addClass("zoomed");
+ 					$(this).attr("style", "width: 100%;");
+ 				}
+ 			})
++
++			$(function() {
++				var articleId = $("#articleId").val();
++				if (articleId) {
++					$.ajax({
++						url: "/articleLike/count",
++						type: "GET",
++						data: { articleId: articleId },
++						success: function(data) {
++							if (data.code == 200) {
++								$("#likeCount").text(data.result.count);
++							}
++						}
++					});
++					$.ajax({
++						url: "/articleLike/status",
++						type: "GET",
++						data: { articleId: articleId },
++						success: function(data) {
++							if (data.code == 200 && data.result.liked) {
++								$("#likeBtn").text("❤️");
++							}
++						}
++					});
++				}
++				$("#likeBtn").on("click", function() {
++					var aid = $("#articleId").val();
++					if (!aid) return;
++					$.ajax({
++						url: "/articleLike/toggle",
++						type: "POST",
++						data: { articleId: aid },
++						success: function(data) {
++							if (data.code == 200) {
++								$("#likeCount").text(data.result.count);
++								$("#likeBtn").text(data.result.liked ? "❤️" : "👍");
++							} else if (data.code == 401) {
++								alert("请先登录后再点赞");
++								window.location.href = "/user/loginPage";
++							} else {
++								alert(data.message);
++							}
++						}
++					});
++				});
++			})
+ 		</script>
+ 		<script>
+ 			$(function() {

@@ -54,6 +54,7 @@
                                         作者：<a href="/" target="_blank" class="fc-link" th:text="${article.author}"></a>
                                     </small>
                                     <small class="ml10">围观群众：<i class="readcount" th:text="${article.heat}"></i></small>
+                                    <small class="ml10">点赞：<span id="likeCount">0</span> <a href="javascript:void(0)" id="likeBtn">👍</a></small>
                                     <small class="ml10">更新于 <label th:text="${article.updateTimeShow}"></label> </small>
                                     <small class="ml10">
                                         使用以前的显示 <a th:href="'/article/articleShow?id=' + ${article.id} + '&password=' + ${password}">以前的显示器</a>
@@ -203,13 +204,60 @@
         // 图片放大处理
         $("body").on("click", "img", function(){
             if ($(this).hasClass("zoomed")) {
-                $(this).removeClass("zoomed"); // 移除放大样式类
+                $(this).removeClass("zoomed");
                 $(this).attr("style", originalStyle);
             } else {
                 originalStyle = $(this).attr("style");
-                $(this).addClass("zoomed"); // 添加放大样式类
+                $(this).addClass("zoomed");
                 $(this).attr("style", "width: 100%;");
             }
+        })
+
+        $(function() {
+            var articleId = $("#articleId").val();
+            if (articleId) {
+                $.ajax({
+                    url: "/articleLike/count",
+                    type: "GET",
+                    data: { articleId: articleId },
+                    success: function(data) {
+                        if (data.code == 200) {
+                            $("#likeCount").text(data.result.count);
+                        }
+                    }
+                });
+                $.ajax({
+                    url: "/articleLike/status",
+                    type: "GET",
+                    data: { articleId: articleId },
+                    success: function(data) {
+                        if (data.code == 200 && data.result.liked) {
+                            $("#likeBtn").text("❤️");
+                        }
+                    }
+                });
+            }
+            $("#likeBtn").on("click", function() {
+                var aid = $("#articleId").val();
+                if (!aid) return;
+                $.ajax({
+                    url: "/articleLike/toggle",
+                    type: "POST",
+                    data: { articleId: aid },
+                    success: function(data) {
+                        if (data.code == 200) {
+                            $("#likeCount").text(data.result.count);
+                            $("#likeBtn").text(data.result.liked ? "❤️" : "👍");
+                        } else if (data.code == 401) {
+                            layer.alert("请先登录后再点赞", function() {
+                                window.location.href = "/user/loginPage";
+                            });
+                        } else {
+                            layer.msg(data.message, { icon: 2 });
+                        }
+                    }
+                });
+            });
         })
     </script>
     <script>

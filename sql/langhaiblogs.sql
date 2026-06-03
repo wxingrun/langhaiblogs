@@ -224,4 +224,19 @@ CREATE TABLE `visit`  (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 175721 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for article_like
+-- ----------------------------
+DROP TABLE IF EXISTS `article_like`;
+CREATE TABLE `article_like`  (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '点赞id',
+  `article_id` bigint(20) NOT NULL COMMENT '文章id',
+  `user_id` bigint(20) NOT NULL COMMENT '用户id',
+  `create_time` datetime NOT NULL COMMENT '点赞时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_article_user` (`article_id`, `user_id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章点赞表' ROW_FORMAT = DYNAMIC;
+
 SET FOREIGN_KEY_CHECKS = 1;

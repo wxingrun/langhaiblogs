@@ -46,6 +46,7 @@
 								<div>
 									<span th:text="${article.title}"></span>
 									<span th:text="'浪海值：' + ${article.heat} + '度'"></span><br />
+									<span>点赞：<span id="likeCount">0</span> <a href="javascript:void(0)" id="likeBtn">👍</a></span><br />
 									<span th:text="'文章标签：' + ${article.labelContent}"></span><br />
 									<span th:text="'文章摘要：' + ${article.abstractText}"></span><br />
 									<span>
@@ -154,13 +155,59 @@
 			// 图片放大处理
 			$("body").on("click", "img", function(){
 				if ($(this).hasClass("zoomed")) {
-					$(this).removeClass("zoomed"); // 移除放大样式类
+					$(this).removeClass("zoomed");
 					$(this).attr("style", originalStyle);
 				} else {
 					originalStyle = $(this).attr("style");
-					$(this).addClass("zoomed"); // 添加放大样式类
+					$(this).addClass("zoomed");
 					$(this).attr("style", "width: 100%;");
 				}
+			})
+
+			$(function() {
+				var articleId = $("#articleId").val();
+				if (articleId) {
+					$.ajax({
+						url: "/articleLike/count",
+						type: "GET",
+						data: { articleId: articleId },
+						success: function(data) {
+							if (data.code == 200) {
+								$("#likeCount").text(data.result.count);
+							}
+						}
+					});
+					$.ajax({
+						url: "/articleLike/status",
+						type: "GET",
+						data: { articleId: articleId },
+						success: function(data) {
+							if (data.code == 200 && data.result.liked) {
+								$("#likeBtn").text("❤️");
+							}
+						}
+					});
+				}
+				$("#likeBtn").on("click", function() {
+					var aid = $("#articleId").val();
+					if (!aid) return;
+					$.ajax({
+						url: "/articleLike/toggle",
+						type: "POST",
+						data: { articleId: aid },
+						success: function(data) {
+							if (data.code == 200) {
+								$("#likeCount").text(data.result.count);
+								$("#likeBtn").text(data.result.liked ? "❤️" : "👍");
+							} else if (data.code == 401) {
+								alert("请先登录后再点赞");
+								window.location.href = "/user/loginPage";
+							} else {
+								alert(data.message);
+							}
+						}
+					});
+				});
 			})
 		</script>
 		<script>
