@@ -52,6 +52,11 @@
 										使用新的显示器：<a th:href="'/article/articleShowNew?id=' + ${article.id} + '&password=' + ${password}">新的显示器</a>
 										<span>如果遇到图片单击即可放大/缩小。</span>
 									</span><br />
+									<span>
+										<a href="javascript:void(0)" class="button small" id="likeBtn">
+											<i class="icon fa-heart"></i> 点赞 (<span id="likeCount">0</span>)
+										</a>
+									</span><br />
 								</div>
 								<div th:utext="${article.html}">
 
@@ -149,6 +154,45 @@
 					})
 				});
 			})
+
+			// 点赞功能
+			$(function () {
+				var articleId = $("#articleId").val();
+				$.ajax({
+					url: "/articleLike/count",
+					async: true,
+					type: "GET",
+					data: { "articleId": articleId },
+					success: function (data) {
+						if (data.code == 200) {
+							$("#likeCount").text(data.result.likeCount);
+						}
+					}
+				});
+
+				$("#likeBtn").on("click", function () {
+					$.ajax({
+						url: "/articleLike/like",
+						async: true,
+						type: "POST",
+						data: { "articleId": articleId },
+						success: function (data) {
+							if (data.code == 200) {
+								$("#likeCount").text(data.result.likeCount);
+								$("#vCodeStatus").html(data.message);
+							} else {
+								if (data.message.indexOf("登录") != -1) {
+									if (confirm("请先登录，是否跳转到登录页面？")) {
+										window.location.href = "/user/loginPage";
+									}
+								} else {
+									$("#vCodeStatus").html(data.message);
+								}
+							}
+						}
+					});
+				});
+			});
 
 			var originalStyle;
 			// 图片放大处理
