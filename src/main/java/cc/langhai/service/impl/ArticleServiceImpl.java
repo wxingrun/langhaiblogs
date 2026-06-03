@@ -352,8 +352,11 @@ public class ArticleServiceImpl implements ArticleService {
             throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_USER_FAIL_00014);
         }
         // 参数合法校验
-        if (ObjectUtil.isNull(articleId) || StrUtil.isBlank(content)) {
+        if (ObjectUtil.isNull(articleId)) {
             throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_PARAM_FAIL_00013);
+        }
+        if (StrUtil.isBlank(content) || content.trim().isEmpty()) {
+            throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_CONTENT_BLANK_FAIL_00016);
         }
         // 当前用户对此篇文章只能评价三条
         List<ArticleComment> list = articleCommentService.list(Wrappers.<ArticleComment>lambdaQuery()

@@ -1,0 +1,125 @@
+diff --git a/src/main/java/cc/langhai/response/ArticleReturnCode.java b/src/main/java/cc/langhai/response/ArticleReturnCode.java
+index 349838b..7fa116a 100644
+--- a/src/main/java/cc/langhai/response/ArticleReturnCode.java
++++ b/src/main/java/cc/langhai/response/ArticleReturnCode.java
+@@ -38,6 +38,8 @@ public enum ArticleReturnCode implements ReturnCode{
+     ARTICLE_SUBMIT_COMMENT_USER_FAIL_00014(500, "文章进行评论失败，请登录之后在评论。"),
+ 
+     ARTICLE_SUBMIT_COMMENT_COUNT_FAIL_00015(500, "文章进行评论失败，评论次数过多。"),
++
++    ARTICLE_SUBMIT_COMMENT_CONTENT_BLANK_FAIL_00016(500, "评论内容不能为空或只包含空格/换行。"),
+     ;
+ 
+     private Integer code;
+diff --git a/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java b/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
+index f611899..12043c4 100644
+--- a/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
++++ b/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
+@@ -352,9 +352,12 @@ public class ArticleServiceImpl implements ArticleService {
+             throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_USER_FAIL_00014);
+         }
+         // 参数合法校验
+-        if (ObjectUtil.isNull(articleId) || StrUtil.isBlank(content)) {
++        if (ObjectUtil.isNull(articleId)) {
+             throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_PARAM_FAIL_00013);
+         }
++        if (StrUtil.isBlank(content) || content.trim().isEmpty()) {
++            throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_CONTENT_BLANK_FAIL_00016);
++        }
+         // 当前用户对此篇文章只能评价三条
+         List<ArticleComment> list = articleCommentService.list(Wrappers.<ArticleComment>lambdaQuery()
+                 .eq(ArticleComment::getUserId, user.getId())
+diff --git a/src/main/resources/templates/blogs-new/read.html b/src/main/resources/templates/blogs-new/read.html
+index 71ffffb..61ee5e7 100644
+--- a/src/main/resources/templates/blogs-new/read.html
++++ b/src/main/resources/templates/blogs-new/read.html
+@@ -171,17 +171,27 @@
+         // 提交文章评论
+         $(function () {
+             $("#submitComment").on("click", function () {
++                var content = $("#content").val();
++                if (!content || content.trim() === "") {
++                    layer.msg("评论内容不能为空或只包含空格/换行。", {
++                        icon: 2,
++                        time: 2000
++                    });
++                    return;
++                }
++                var $btn = $(this);
++                $btn.prop("disabled", true).text("提交中...");
+                 $.ajax({
+                     url: "/article/submitComment",
+                     async: true,
+                     type: "POST",
+                     data: {
+                         "articleId": $("#articleId").val(),
+-                        "content": $("#content").val()
++                        "content": content
+                     },
+                     success: function (data) {
+-                        $("#content").val('');
+                         if (data.code == 200) {
++                            $("#content").val('');
+                             layer.msg(data.message, {
+                                 icon: 1,
+                                 time: 2000
+@@ -194,6 +204,15 @@
+                                 time: 2000
+                             });
+                         }
++                    },
++                    error: function () {
++                        layer.msg("提交失败，请稍后重试。", {
++                            icon: 2,
++                            time: 2000
++                        });
++                    },
++                    complete: function () {
++                        $btn.prop("disabled", false).text("提交评论");
+                     }
+                 })
+             });
+diff --git a/src/main/resources/templates/blogs/article/articleShow.html b/src/main/resources/templates/blogs/article/articleShow.html
+index 3cd8353..e505f75 100644
+--- a/src/main/resources/templates/blogs/article/articleShow.html
++++ b/src/main/resources/templates/blogs/article/articleShow.html
+@@ -127,17 +127,24 @@
+ 			// 提交文章评论
+ 			$(function () {
+ 				$("#submitComment").on("click", function () {
++					var content = $("#content").val();
++					if (!content || content.trim() === "") {
++						$("#vCodeStatus").html("评论内容不能为空或只包含空格/换行。");
++						return;
++					}
++					var $btn = $(this);
++					$btn.prop("disabled", true).text("提交中...");
+ 					$.ajax({
+ 						url: "/article/submitComment",
+ 						async: true,
+ 						type: "POST",
+ 						data: {
+ 							"articleId": $("#articleId").val(),
+-							"content": $("#content").val()
++							"content": content
+ 						},
+ 						success: function (data) {
+-							$("#content").val('');
+ 							if(data.code == 200){
++								$("#content").val('');
+ 								$("#vCodeStatus").html(data.message);
+ 								setTimeout(function(){
+ 									window.location.reload();
+@@ -145,6 +152,12 @@
+ 							}else {
+ 								$("#vCodeStatus").html(data.message);
+ 							}
++						},
++						error: function () {
++							$("#vCodeStatus").html("提交失败，请稍后重试。");
++						},
++						complete: function () {
++							$btn.prop("disabled", false).text("提交评论");
+ 						}
+ 					})
+ 				});

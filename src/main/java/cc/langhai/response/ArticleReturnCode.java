@@ -38,6 +38,8 @@ public enum ArticleReturnCode implements ReturnCode{
     ARTICLE_SUBMIT_COMMENT_USER_FAIL_00014(500, "文章进行评论失败，请登录之后在评论。"),
 
     ARTICLE_SUBMIT_COMMENT_COUNT_FAIL_00015(500, "文章进行评论失败，评论次数过多。"),
+
+    ARTICLE_SUBMIT_COMMENT_CONTENT_BLANK_FAIL_00016(500, "评论内容不能为空或只包含空格/换行。"),
     ;
 
     private Integer code;
