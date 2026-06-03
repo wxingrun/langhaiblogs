@@ -1,0 +1,61 @@
+diff --git a/README.md b/README.md
+index 7b52a00..204d539 100644
+--- a/README.md
++++ b/README.md
+@@ -50,4 +50,53 @@ INSERT INTO role VALUES(3, 'vip', NOW(), NULL);
+ 非关系型数据库 Redis  
+ 图片存储服务器 minio [minio 详细说明](http://www.langhai.cc/article/articleShow?id=54)   
+ 搜索引擎(可选) elasticSearch [elasticSearch 相关说明](http://www.langhai.cc/article/articleShow?id=55)   
+-消息队列（可选）rabbitMQ   <a href="https://langhai.cc/article/articleShow?id=33">rabbitMQ所有说明</a>
+\ No newline at end of file
++消息队列（可选）rabbitMQ   <a href="https://langhai.cc/article/articleShow?id=33">rabbitMQ所有说明</a>
++
++Trae / Docker rollout
++
++仓库根目录已补充 Dockerfile 和 .dockerignore，容器内项目目录固定为 /app，默认工作目录也是 /app。
++
++基础构建与完整运行的差异
++
++- 基础构建：Docker 镜像构建阶段会执行 mvn -B -ntp -DskipTests package，用于依赖解析和可复现打包。
++- 完整运行：当前仓库从 pom.xml、application.yml 和代码引用看，完整版功能依赖 MySQL、Redis、MinIO，且代码中存在 Elasticsearch 与 RabbitMQ 相关配置与调用；如果这些外部服务未准备好，应用功能会受限，部分场景下应用启动也可能失败。
++- 邮件发送也依赖外部 SMTP 服务，README 与 Docker 配置均未写入真实账号和密码。
++- Docker 容器会优先启动 OpenSSH Server，并在 Spring Boot 进程未成功启动时保持容器存活，便于进入容器排查。
++
++构建镜像
++
++```bash
++docker build -t langhaiblogs-trae .
++```
++
++运行容器
++
++```bash
++docker run -d \
++  --name langhaiblogs-trae \
++  -p 2222:22 \
++  -p 2086:2086 \
++  -e ROOT_PASSWORD=trae-debug \
++  langhaiblogs-trae
++```
++
++说明
++
++- SSH 默认监听容器内 22 端口，可通过 -p 2222:22 暴露给宿主机。
++- ROOT_PASSWORD 用于设置 root 的 SSH 登录密码；示例值仅用于本地调试，请按实际环境自行覆盖。
++- 如果只验证基础构建，上述容器即使 Spring Boot 未正常启动也会保持存活。
++- 如果需要完整运行，请额外准备 MySQL、Redis、MinIO，并按实际功能场景补齐 Elasticsearch、RabbitMQ 与邮件 SMTP 配置。
++
++确认容器内目录是 /app
++
++```bash
++docker exec langhaiblogs-trae sh -lc 'pwd && ls -la /app | head'
++```
++
++确认 SSH 服务可连接
++
++```bash
++ssh root@127.0.0.1 -p 2222
++```
++
++连接后执行 pwd，预期输出为 /app。
+\ No newline at end of file
