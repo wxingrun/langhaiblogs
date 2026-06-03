@@ -1,0 +1,56 @@
+diff --git a/src/main/java/cc/langhai/controller/article/ArticleController.java b/src/main/java/cc/langhai/controller/article/ArticleController.java
+index f6783ab..5915915 100644
+--- a/src/main/java/cc/langhai/controller/article/ArticleController.java
++++ b/src/main/java/cc/langhai/controller/article/ArticleController.java
+@@ -101,13 +101,10 @@ public class ArticleController {
+     public JSONObject articleList(@RequestParam(defaultValue = "1") Integer page,
+                                   @RequestParam(defaultValue = "10") Integer limit,
+                                   String title, String abstractText) {
+-        // 开启分页助手
+-        PageHelper.startPage(page, limit);
+-        List<Article> allArticle = articleService.getAllArticle(title, abstractText, "user");
++        PageInfo<Article> pageInfo = articleService.getAllArticle(page, limit, title, abstractText, "user");
+         JSONObject jsonObject = new JSONObject();
+         jsonObject.put("code", 0);
+-        jsonObject.put("data", allArticle);
+-        PageInfo<Article> pageInfo = new PageInfo<>(allArticle);
++        jsonObject.put("data", pageInfo.getList());
+         jsonObject.put("count", pageInfo.getTotal());
+         return jsonObject;
+     }
+diff --git a/src/main/java/cc/langhai/service/ArticleService.java b/src/main/java/cc/langhai/service/ArticleService.java
+index d1acb41..108a91a 100644
+--- a/src/main/java/cc/langhai/service/ArticleService.java
++++ b/src/main/java/cc/langhai/service/ArticleService.java
+@@ -36,6 +36,18 @@ public interface ArticleService {
+      */
+     List<Article> getAllArticle(String title, String abstractText, String param);
+ 
++    /**
++     * 获取用户发布的所有文章（分页）
++     *
++     * @param page 页数
++     * @param size 显示的条数
++     * @param title 文章标题
++     * @param abstractText 文章摘要
++     * @param param 此参数传入为 system 查询所有用户文章数据
++     * @return 用户发布的所有文章分页数据
++     */
++    PageInfo<Article> getAllArticle(Integer page, Integer size, String title, String abstractText, String param);
++
+     /**
+      * 获取一篇文章
+      *
+diff --git a/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java b/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
+index f611899..db7b514 100644
+--- a/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
++++ b/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
+@@ -249,6 +249,8 @@ public class ArticleServiceImpl implements ArticleService {
+ 
+     @Override
+     public HashMap<String, Object> searchES(Integer page, Integer size, String searchArticleStr) throws IOException {
++        page = PageUtil.getValidPage(page);
++        size = PageUtil.getValidSize(size);
+         // 1.准备Request
+         SearchRequest request = new SearchRequest("langhaiblogs");
+         // 2.准备DSL

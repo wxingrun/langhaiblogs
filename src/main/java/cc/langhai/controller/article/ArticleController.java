@@ -101,13 +101,10 @@ public class ArticleController {
     public JSONObject articleList(@RequestParam(defaultValue = "1") Integer page,
                                   @RequestParam(defaultValue = "10") Integer limit,
                                   String title, String abstractText) {
-        // 开启分页助手
-        PageHelper.startPage(page, limit);
-        List<Article> allArticle = articleService.getAllArticle(title, abstractText, "user");
+        PageInfo<Article> pageInfo = articleService.getAllArticle(page, limit, title, abstractText, "user");
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("code", 0);
-        jsonObject.put("data", allArticle);
-        PageInfo<Article> pageInfo = new PageInfo<>(allArticle);
+        jsonObject.put("data", pageInfo.getList());
         jsonObject.put("count", pageInfo.getTotal());
         return jsonObject;
     }

@@ -37,6 +37,18 @@ public interface ArticleService {
     List<Article> getAllArticle(String title, String abstractText, String param);
 
     /**
+     * 获取用户发布的所有文章（分页）
+     *
+     * @param page 页数
+     * @param size 显示的条数
+     * @param title 文章标题
+     * @param abstractText 文章摘要
+     * @param param 此参数传入为 system 查询所有用户文章数据
+     * @return 用户发布的所有文章分页数据
+     */
+    PageInfo<Article> getAllArticle(Integer page, Integer size, String title, String abstractText, String param);
+
+    /**
      * 获取一篇文章
      *
      * @param id 文章id

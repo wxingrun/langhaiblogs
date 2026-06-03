@@ -249,6 +249,8 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public HashMap<String, Object> searchES(Integer page, Integer size, String searchArticleStr) throws IOException {
+        page = PageUtil.getValidPage(page);
+        size = PageUtil.getValidSize(size);
         // 1.准备Request
         SearchRequest request = new SearchRequest("langhaiblogs");
         // 2.准备DSL
