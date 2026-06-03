@@ -10,6 +10,8 @@ public enum ArticleCommentReturnCode implements ReturnCode{
     ARTICLE_COMMENT_DELETE_OK_00001(200, "文章评论真实删除成功。"),
 
     ARTICLE_COMMENT_DELETE_FAIL_00002(500, "文章评论真实删除失败。"),
+    
+    ARTICLE_COMMENT_GET_OK_00016(200, "获取文章评论成功。"),
     ;
 
     private Integer code;

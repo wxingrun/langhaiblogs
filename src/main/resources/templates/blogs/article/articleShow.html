@@ -126,29 +126,73 @@
 
 			// 提交文章评论
 			$(function () {
+				var isSubmitting = false;
 				$("#submitComment").on("click", function () {
+					if (isSubmitting) {
+						return;
+					}
+					
+					var content = $("#content").val();
+					// 前端校验
+					if (!content || content.trim() === "") {
+						$("#vCodeStatus").html("评论内容不能为空！");
+						return;
+					}
+					
+					isSubmitting = true;
+					var originalText = $("#submitComment").text();
+					$("#submitComment").text("提交中...").attr("disabled", true);
+					
 					$.ajax({
 						url: "/article/submitComment",
 						async: true,
 						type: "POST",
 						data: {
 							"articleId": $("#articleId").val(),
-							"content": $("#content").val()
+							"content": content
 						},
 						success: function (data) {
-							$("#content").val('');
 							if(data.code == 200){
 								$("#vCodeStatus").html(data.message);
-								setTimeout(function(){
-									window.location.reload();
-								}, 1000);
+								$("#content").val('');
+								// 局部刷新评论列表
+								refreshCommentList();
 							}else {
 								$("#vCodeStatus").html(data.message);
 							}
+						},
+						error: function () {
+							$("#vCodeStatus").html("提交失败，请稍后重试！");
+						},
+						complete: function () {
+							isSubmitting = false;
+							$("#submitComment").text(originalText).attr("disabled", false);
 						}
 					})
 				});
 			})
+
+			// 刷新评论列表
+			function refreshCommentList() {
+				$.ajax({
+					url: "/articleComment/getCommentByArticleId",
+					async: true,
+					type: "GET",
+					data: {
+						"articleId": $("#articleId").val()
+					},
+					success: function (data) {
+						if(data.code == 200 && data.result){
+							var commentListHtml = '';
+							data.result.forEach(function(comment) {
+								commentListHtml += '<li>评论时间：' + comment.addTimeShow + ' 用户昵称：' + comment.nickname + '</li>';
+								commentListHtml += '<li>评论内容：' + comment.content + '</li>';
+							});
+							$("#blog-comment").html(commentListHtml);
+						}
+					}
+				});
+			}
 
 			var originalStyle;
 			// 图片放大处理

@@ -91,4 +91,19 @@ public class ArticleCommentController {
         return new ResultResponse<>(200, "修改评论审核状态成功。", null);
     }
 
+    /**
+     * 根据文章ID获取评论列表
+     * 
+     * @param articleId 文章ID
+     * @return 评论列表
+     */
+    @ResponseBody
+    @GetMapping("/getCommentByArticleId")
+    public ResultResponse<List<ArticleComment>> getCommentByArticleId(Long articleId) {
+        if (articleId == null) {
+            return ResultResponse.fail();
+        }
+        List<ArticleComment> commentList = articleCommentService.getCommentByArticleId(articleId);
+        return ResultResponse.success(ArticleCommentReturnCode.ARTICLE_COMMENT_GET_OK_00016, commentList);
+    }
 }

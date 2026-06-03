@@ -351,8 +351,13 @@ public class ArticleServiceImpl implements ArticleService {
         if (ObjectUtil.isNull(user)) {
             throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_USER_FAIL_00014);
         }
-        // 参数合法校验
-        if (ObjectUtil.isNull(articleId) || StrUtil.isBlank(content)) {
+        // 参数合法校验 - 改进：不仅检查是否为空，还要检查是否只包含空白字符
+        if (ObjectUtil.isNull(articleId) || StrUtil.isBlank(content) || StrUtil.isBlank(content.trim())) {
+            throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_PARAM_FAIL_00013);
+        }
+        // 校验文章是否存在
+        Article article = articleMapper.getById(articleId);
+        if (ObjectUtil.isNull(article)) {
             throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_PARAM_FAIL_00013);
         }
         // 当前用户对此篇文章只能评价三条
@@ -364,8 +369,10 @@ public class ArticleServiceImpl implements ArticleService {
         }
         ArticleComment articleComment = new ArticleComment();
         articleComment.setArticleId(articleId);
-        articleComment.setContent(content);
+        articleComment.setContent(content.trim()); // 去除前后空白
         articleComment.setUserId(user.getId());
+        articleComment.setShowFlag(false); // 默认不展示，需要审核
+        articleComment.setAddTime(new Date());
         articleCommentService.save(articleComment);
     }
 

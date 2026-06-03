@@ -1,0 +1,249 @@
+diff --git a/src/main/java/cc/langhai/controller/articlecomment/ArticleCommentController.java b/src/main/java/cc/langhai/controller/articlecomment/ArticleCommentController.java
+index dc79715..d665107 100644
+--- a/src/main/java/cc/langhai/controller/articlecomment/ArticleCommentController.java
++++ b/src/main/java/cc/langhai/controller/articlecomment/ArticleCommentController.java
+@@ -91,4 +91,19 @@ public class ArticleCommentController {
+         return new ResultResponse<>(200, "修改评论审核状态成功。", null);
+     }
+ 
++    /**
++     * 根据文章ID获取评论列表
++     * 
++     * @param articleId 文章ID
++     * @return 评论列表
++     */
++    @ResponseBody
++    @GetMapping("/getCommentByArticleId")
++    public ResultResponse<List<ArticleComment>> getCommentByArticleId(Long articleId) {
++        if (articleId == null) {
++            return ResultResponse.fail();
++        }
++        List<ArticleComment> commentList = articleCommentService.getCommentByArticleId(articleId);
++        return ResultResponse.success(ArticleCommentReturnCode.ARTICLE_COMMENT_GET_OK_00016, commentList);
++    }
+ }
+diff --git a/src/main/java/cc/langhai/response/ArticleCommentReturnCode.java b/src/main/java/cc/langhai/response/ArticleCommentReturnCode.java
+index f0dba22..66ca4f3 100644
+--- a/src/main/java/cc/langhai/response/ArticleCommentReturnCode.java
++++ b/src/main/java/cc/langhai/response/ArticleCommentReturnCode.java
+@@ -10,6 +10,8 @@ public enum ArticleCommentReturnCode implements ReturnCode{
+     ARTICLE_COMMENT_DELETE_OK_00001(200, "文章评论真实删除成功。"),
+ 
+     ARTICLE_COMMENT_DELETE_FAIL_00002(500, "文章评论真实删除失败。"),
++    
++    ARTICLE_COMMENT_GET_OK_00016(200, "获取文章评论成功。"),
+     ;
+ 
+     private Integer code;
+diff --git a/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java b/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
+index f611899..74a4f6f 100644
+--- a/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
++++ b/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
+@@ -351,8 +351,13 @@ public class ArticleServiceImpl implements ArticleService {
+         if (ObjectUtil.isNull(user)) {
+             throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_USER_FAIL_00014);
+         }
+-        // 参数合法校验
+-        if (ObjectUtil.isNull(articleId) || StrUtil.isBlank(content)) {
++        // 参数合法校验 - 改进：不仅检查是否为空，还要检查是否只包含空白字符
++        if (ObjectUtil.isNull(articleId) || StrUtil.isBlank(content) || StrUtil.isBlank(content.trim())) {
++            throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_PARAM_FAIL_00013);
++        }
++        // 校验文章是否存在
++        Article article = articleMapper.getById(articleId);
++        if (ObjectUtil.isNull(article)) {
+             throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_PARAM_FAIL_00013);
+         }
+         // 当前用户对此篇文章只能评价三条
+@@ -364,8 +369,10 @@ public class ArticleServiceImpl implements ArticleService {
+         }
+         ArticleComment articleComment = new ArticleComment();
+         articleComment.setArticleId(articleId);
+-        articleComment.setContent(content);
++        articleComment.setContent(content.trim()); // 去除前后空白
+         articleComment.setUserId(user.getId());
++        articleComment.setShowFlag(false); // 默认不展示，需要审核
++        articleComment.setAddTime(new Date());
+         articleCommentService.save(articleComment);
+     }
+ 
+diff --git a/src/main/resources/templates/blogs-new/read.html b/src/main/resources/templates/blogs-new/read.html
+index 71ffffb..5b5a5a2 100644
+--- a/src/main/resources/templates/blogs-new/read.html
++++ b/src/main/resources/templates/blogs-new/read.html
+@@ -170,35 +170,86 @@
+ 
+         // 提交文章评论
+         $(function () {
++            var isSubmitting = false;
+             $("#submitComment").on("click", function () {
++                if (isSubmitting) {
++                    return;
++                }
++                
++                var content = $("#content").val();
++                // 前端校验
++                if (!content || content.trim() === "") {
++                    layer.msg("评论内容不能为空！", {
++                        icon: 2,
++                        time: 2000
++                    });
++                    return;
++                }
++                
++                isSubmitting = true;
++                var originalText = $("#submitComment").text();
++                $("#submitComment").text("提交中...").attr("disabled", true);
++                
+                 $.ajax({
+                     url: "/article/submitComment",
+                     async: true,
+                     type: "POST",
+                     data: {
+                         "articleId": $("#articleId").val(),
+-                        "content": $("#content").val()
++                        "content": content
+                     },
+                     success: function (data) {
+-                        $("#content").val('');
+                         if (data.code == 200) {
+                             layer.msg(data.message, {
+                                 icon: 1,
+                                 time: 2000
+-                            }, function () {
+-                                window.location.reload();
+-                            })
++                            });
++                            $("#content").val('');
++                            // 局部刷新评论列表
++                            refreshCommentList();
+                         } else {
+                             layer.msg(data.message, {
+                                 icon: 2,
+                                 time: 2000
+                             });
+                         }
++                    },
++                    error: function () {
++                        layer.msg("提交失败，请稍后重试！", {
++                            icon: 2,
++                            time: 2000
++                        });
++                    },
++                    complete: function () {
++                        isSubmitting = false;
++                        $("#submitComment").text(originalText).attr("disabled", false);
+                     }
+                 })
+             });
+         })
+ 
++        // 刷新评论列表
++        function refreshCommentList() {
++            $.ajax({
++                url: "/articleComment/getCommentByArticleId",
++                async: true,
++                type: "GET",
++                data: {
++                    "articleId": $("#articleId").val()
++                },
++                success: function (data) {
++                    if(data.code == 200 && data.result){
++                        var commentListHtml = '';
++                        data.result.forEach(function(comment) {
++                            commentListHtml += '<li>评论时间：' + comment.addTimeShow + ' 用户昵称：' + comment.nickname + '</li>';
++                            commentListHtml += '<li>评论内容：' + comment.content + '</li>';
++                        });
++                        $("#blog-comment").html(commentListHtml);
++                    }
++                }
++            });
++        }
++
+         var originalStyle;
+         // 图片放大处理
+         $("body").on("click", "img", function(){
+diff --git a/src/main/resources/templates/blogs/article/articleShow.html b/src/main/resources/templates/blogs/article/articleShow.html
+index 3cd8353..4dd8323 100644
+--- a/src/main/resources/templates/blogs/article/articleShow.html
++++ b/src/main/resources/templates/blogs/article/articleShow.html
+@@ -126,30 +126,74 @@
+ 
+ 			// 提交文章评论
+ 			$(function () {
++				var isSubmitting = false;
+ 				$("#submitComment").on("click", function () {
++					if (isSubmitting) {
++						return;
++					}
++					
++					var content = $("#content").val();
++					// 前端校验
++					if (!content || content.trim() === "") {
++						$("#vCodeStatus").html("评论内容不能为空！");
++						return;
++					}
++					
++					isSubmitting = true;
++					var originalText = $("#submitComment").text();
++					$("#submitComment").text("提交中...").attr("disabled", true);
++					
+ 					$.ajax({
+ 						url: "/article/submitComment",
+ 						async: true,
+ 						type: "POST",
+ 						data: {
+ 							"articleId": $("#articleId").val(),
+-							"content": $("#content").val()
++							"content": content
+ 						},
+ 						success: function (data) {
+-							$("#content").val('');
+ 							if(data.code == 200){
+ 								$("#vCodeStatus").html(data.message);
+-								setTimeout(function(){
+-									window.location.reload();
+-								}, 1000);
++								$("#content").val('');
++								// 局部刷新评论列表
++								refreshCommentList();
+ 							}else {
+ 								$("#vCodeStatus").html(data.message);
+ 							}
++						},
++						error: function () {
++							$("#vCodeStatus").html("提交失败，请稍后重试！");
++						},
++						complete: function () {
++							isSubmitting = false;
++							$("#submitComment").text(originalText).attr("disabled", false);
+ 						}
+ 					})
+ 				});
+ 			})
+ 
++			// 刷新评论列表
++			function refreshCommentList() {
++				$.ajax({
++					url: "/articleComment/getCommentByArticleId",
++					async: true,
++					type: "GET",
++					data: {
++						"articleId": $("#articleId").val()
++					},
++					success: function (data) {
++						if(data.code == 200 && data.result){
++							var commentListHtml = '';
++							data.result.forEach(function(comment) {
++								commentListHtml += '<li>评论时间：' + comment.addTimeShow + ' 用户昵称：' + comment.nickname + '</li>';
++								commentListHtml += '<li>评论内容：' + comment.content + '</li>';
++							});
++							$("#blog-comment").html(commentListHtml);
++						}
++					}
++				});
++			}
++
+ 			var originalStyle;
+ 			// 图片放大处理
+ 			$("body").on("click", "img", function(){
