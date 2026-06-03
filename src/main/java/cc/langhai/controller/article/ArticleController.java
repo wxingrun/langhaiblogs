@@ -7,13 +7,13 @@ import cc.langhai.dto.ArticleDTO;
 import cc.langhai.response.ArticleReturnCode;
 import cc.langhai.response.ResultResponse;
 import cc.langhai.service.*;
+import cc.langhai.utils.PageUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -101,8 +101,7 @@ public class ArticleController {
     public JSONObject articleList(@RequestParam(defaultValue = "1") Integer page,
                                   @RequestParam(defaultValue = "10") Integer limit,
                                   String title, String abstractText) {
-        // 开启分页助手
-        PageHelper.startPage(page, limit);
+        PageUtil.startPage(page, limit);
         List<Article> allArticle = articleService.getAllArticle(title, abstractText, "user");
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("code", 0);
@@ -122,7 +121,7 @@ public class ArticleController {
     public JSONObject articleListCard(@RequestParam(defaultValue = "1") Integer page,
                                       @RequestParam(defaultValue = "10") Integer limit,
                                       String title, String abstractText){
-        PageHelper.startPage(page, limit);
+        PageUtil.startPage(page, limit);
 
         JSONObject jsonObject = new JSONObject();
         List<Article> allArticle = articleService.getAllArticle(title, abstractText, "user");

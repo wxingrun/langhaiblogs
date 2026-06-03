@@ -10,6 +10,7 @@ import cc.langhai.mq.config.MqConstants;
 import cc.langhai.response.ArticleReturnCode;
 import cc.langhai.service.*;
 import cc.langhai.utils.DateUtil;
+import cc.langhai.utils.PageUtil;
 import cc.langhai.utils.UserContext;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
@@ -240,11 +241,9 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public PageInfo<Article> search(Integer page, Integer size, String searchArticleStr, Long labelId) {
-        // 开启分页助手
-        PageHelper.startPage(page, size);
-        List<Article> allArticlePublicShow = articleMapper.getAllArticlePublicShow(searchArticleStr, labelId);
-        PageInfo<Article> pageInfo = new PageInfo<>(allArticlePublicShow);
-        return pageInfo;
+        return PageUtil.doPageQuery(page, size, () -> 
+            articleMapper.getAllArticlePublicShow(searchArticleStr, labelId)
+        );
     }
 
     @Override
