@@ -54,6 +54,8 @@
                                         作者：<a href="/" target="_blank" class="fc-link" th:text="${article.author}"></a>
                                     </small>
                                     <small class="ml10">围观群众：<i class="readcount" th:text="${article.heat}"></i></small>
+                                    <small class="ml10">点赞数：<i id="likeCountNew" style="color:red; font-weight:bold;">0</i></small>
+                                    <small class="ml10"><a href="javascript:void(0)" id="likeBtnNew" class="layui-btn layui-btn-xs">点赞</a></small>
                                     <small class="ml10">更新于 <label th:text="${article.updateTimeShow}"></label> </small>
                                     <small class="ml10">
                                         使用以前的显示 <a th:href="'/article/articleShow?id=' + ${article.id} + '&password=' + ${password}">以前的显示器</a>
@@ -210,6 +212,55 @@
                 $(this).addClass("zoomed"); // 添加放大样式类
                 $(this).attr("style", "width: 100%;");
             }
+        })
+
+        // 点赞逻辑
+        $(function () {
+            var articleId = $("#articleId").val();
+            var isLiked = false;
+            
+            // 获取点赞状态
+            $.get("/articleLike/status", { articleId: articleId }, function (res) {
+                if (res.code == 200) {
+                    $("#likeCountNew").text(res.result.count);
+                    isLiked = res.result.liked;
+                    if (isLiked) {
+                        $("#likeBtnNew").text("取消点赞");
+                    } else {
+                        $("#likeBtnNew").text("点赞");
+                    }
+                }
+            });
+
+            // 点赞/取消点赞按钮点击
+            $("#likeBtnNew").click(function () {
+                var url = isLiked ? "/articleLike/unlike" : "/articleLike/like";
+                $.post(url, { articleId: articleId }, function (res) {
+                    if (res.code == 200) {
+                        layer.msg(res.message, {icon: 1, time: 1000});
+                        // 重新获取状态
+                        $.get("/articleLike/status", { articleId: articleId }, function (statusRes) {
+                            if (statusRes.code == 200) {
+                                $("#likeCountNew").text(statusRes.result.count);
+                                isLiked = statusRes.result.liked;
+                                if (isLiked) {
+                                    $("#likeBtnNew").text("取消点赞");
+                                } else {
+                                    $("#likeBtnNew").text("点赞");
+                                }
+                            }
+                        });
+                    } else if (res.code == 401) {
+                        layer.confirm('未登录，请先登录！', {
+                          btn: ['去登录', '取消']
+                        }, function(){
+                          window.location.href = "/user/loginPage";
+                        });
+                    } else {
+                        layer.msg(res.message, {icon: 2, time: 2000});
+                    }
+                });
+            });
         })
     </script>
     <script>

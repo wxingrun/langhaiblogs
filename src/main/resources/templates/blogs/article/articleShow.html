@@ -49,6 +49,10 @@
 									<span th:text="'文章标签：' + ${article.labelContent}"></span><br />
 									<span th:text="'文章摘要：' + ${article.abstractText}"></span><br />
 									<span>
+										点赞数：<span id="likeCount" style="color:red; font-weight:bold;">0</span> 
+										<a href="javascript:void(0)" id="likeBtn" class="button primary small" style="margin-left:10px;">点赞</a>
+									</span><br />
+									<span>
 										使用新的显示器：<a th:href="'/article/articleShowNew?id=' + ${article.id} + '&password=' + ${password}">新的显示器</a>
 										<span>如果遇到图片单击即可放大/缩小。</span>
 									</span><br />
@@ -161,6 +165,52 @@
 					$(this).addClass("zoomed"); // 添加放大样式类
 					$(this).attr("style", "width: 100%;");
 				}
+			})
+
+			// 点赞逻辑
+			$(function () {
+				var articleId = $("#articleId").val();
+				var isLiked = false;
+				
+				// 获取点赞状态
+				$.get("/articleLike/status", { articleId: articleId }, function (res) {
+					if (res.code == 200) {
+						$("#likeCount").text(res.result.count);
+						isLiked = res.result.liked;
+						if (isLiked) {
+							$("#likeBtn").text("取消点赞");
+						} else {
+							$("#likeBtn").text("点赞");
+						}
+					}
+				});
+
+				// 点赞/取消点赞按钮点击
+				$("#likeBtn").click(function () {
+					var url = isLiked ? "/articleLike/unlike" : "/articleLike/like";
+					$.post(url, { articleId: articleId }, function (res) {
+						if (res.code == 200) {
+							alert(res.message);
+							// 重新获取状态
+							$.get("/articleLike/status", { articleId: articleId }, function (statusRes) {
+								if (statusRes.code == 200) {
+									$("#likeCount").text(statusRes.result.count);
+									isLiked = statusRes.result.liked;
+									if (isLiked) {
+										$("#likeBtn").text("取消点赞");
+									} else {
+										$("#likeBtn").text("点赞");
+									}
+								}
+							});
+						} else if (res.code == 401) {
+							alert("请先登录！");
+							window.location.href = "/user/loginPage";
+						} else {
+							alert(res.message);
+						}
+					});
+				});
 			})
 		</script>
 		<script>
