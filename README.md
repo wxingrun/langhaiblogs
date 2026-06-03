@@ -18,6 +18,30 @@
 linux ==>> nohup java -jar langhai-blogs.jar > langhai.log &  
 windows ==>> java -jar langhai-blogs.jar
 
+Docker 部署方式：
+
+基础构建与完整运行的差异：
+- 基础构建：仅需 JDK 8 + Maven，执行 mvn package -DskipTests 即可完成，不依赖任何外部服务。容器启动后 SSH 可用，方便调试。
+- 完整运行：需要 MySQL（3306）、Redis（6379）、MinIO（9000）等必需服务，以及 Elasticsearch（9200）、RabbitMQ（5672）等可选服务。需在 application.yml 中配置连接信息并导入 sql/langhaiblogs.sql。
+
+构建镜像：
+docker build -t langhaiblogs .
+
+运行容器（基础构建，仅 SSH 调试）：
+docker run -d -p 2222:22 --name langhaiblogs langhaiblogs
+
+运行容器（完整运行，需连接外部服务）：
+docker run -d -p 2222:22 -p 2086:2086 -p 20202:20202 \
+  -v /path/to/application.yml:/app/src/main/resources/application.yml \
+  --name langhaiblogs langhaiblogs
+
+SSH 连接：
+ssh root@localhost -p 2222  （默认密码：trae）
+
+确认容器内工作目录：
+docker exec langhaiblogs pwd        应输出 /app
+docker exec langhaiblogs ls /app    应列出项目文件
+
 技术选型：  
 springboot 后端快速构建框架  
 thymeleaf 数据模板引擎  
