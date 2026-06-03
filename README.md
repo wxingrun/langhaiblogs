@@ -15,6 +15,43 @@
 ![登录页面截图](./images/登录页面截图.png)
 
 部署方式：[详细说明](https://langhai.cc/article/articleShow?id=38)  
+
+### Docker 部署（推荐用于 Trae / 开发调试）
+
+**基础构建 vs 完整运行的差异说明：**
+
+| 运行模式 | 需要的外部服务 | 说明 |
+|---------|---------------|------|
+| 基础构建 (`docker build`) | **无** | 仅依赖 Maven 中央仓库，完成 `mvn package -DskipTests` |
+| 完整运行 (`java -jar app.jar`) | MySQL + Redis + MinIO + ElasticSearch + RabbitMQ | 所有外部服务就绪后应用才能正常启动 |
+
+Docker 镜像构建命令：
+```bash
+docker build -t langhaiblogs:dev .
+```
+
+Docker 容器运行命令（映射 SSH 到 2222 端口）：
+```bash
+docker run -d --name langhaiblogs-dev -p 2222:22 -p 2086:2086 langhaiblogs:dev
+```
+
+SSH 连接容器（root 用户，密码 root）：
+```bash
+ssh -p 2222 root@localhost
+```
+
+确认容器内目录为 /app：
+```bash
+ssh -p 2222 root@localhost "pwd && ls -la /app"
+```
+
+确认 SSH 服务可连接：
+```bash
+ssh -p 2222 root@localhost "echo SSH OK: $(date)"
+```
+
+**注意：** Dockerfile 中的 root 密码仅用于开发调试环境，不可用于生产。生产环境请使用 SSH Key 认证。
+
 linux ==>> nohup java -jar langhai-blogs.jar > langhai.log &  
 windows ==>> java -jar langhai-blogs.jar
 

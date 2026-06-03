@@ -18,6 +18,43 @@ Screenshot of login page
 ![登录页面截图](./images/登录页面截图.png)
 
 Deployment method:  [detailed description](https://langhai.cc/article/articleShow?id=38)  
+
+### Docker Deployment (Recommended for Trae / Dev Debugging)
+
+**Difference between Basic Build and Full Run:**
+
+| Mode | Required External Services | Notes |
+|------|---------------------------|-------|
+| Basic Build (`docker build`) | **None** | Only depends on Maven Central, runs `mvn package -DskipTests` |
+| Full Run (`java -jar app.jar`) | MySQL + Redis + MinIO + ElasticSearch + RabbitMQ | All external services must be ready for the app to start |
+
+Docker image build command:
+```bash
+docker build -t langhaiblogs:dev .
+```
+
+Docker container run command (maps SSH to port 2222):
+```bash
+docker run -d --name langhaiblogs-dev -p 2222:22 -p 2086:2086 langhaiblogs:dev
+```
+
+SSH into container (root user, password: root):
+```bash
+ssh -p 2222 root@localhost
+```
+
+Verify working directory is /app:
+```bash
+ssh -p 2222 root@localhost "pwd && ls -la /app"
+```
+
+Verify SSH service is reachable:
+```bash
+ssh -p 2222 root@localhost "echo SSH OK: $(date)"
+```
+
+**Note:** The root password in Dockerfile is for development/debugging only. Use SSH Key auth for production.
+
 linux ==>> nohup java -jar langhai-blogs.jar > langhai.log &  
 windows ==>> java -jar langhai-blogs.jar
 
