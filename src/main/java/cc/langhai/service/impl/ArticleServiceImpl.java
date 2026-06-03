@@ -10,13 +10,13 @@ import cc.langhai.mq.config.MqConstants;
 import cc.langhai.response.ArticleReturnCode;
 import cc.langhai.service.*;
 import cc.langhai.utils.DateUtil;
+import cc.langhai.utils.PageUtil;
 import cc.langhai.utils.UserContext;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -240,19 +240,16 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public PageInfo<Article> search(Integer page, Integer size, String searchArticleStr, Long labelId) {
-        // 开启分页助手
-        PageHelper.startPage(page, size);
+        PageUtil.startPage(page, size);
         List<Article> allArticlePublicShow = articleMapper.getAllArticlePublicShow(searchArticleStr, labelId);
-        PageInfo<Article> pageInfo = new PageInfo<>(allArticlePublicShow);
-        return pageInfo;
+        return PageUtil.buildPageInfo(allArticlePublicShow);
     }
 
     @Override
     public HashMap<String, Object> searchES(Integer page, Integer size, String searchArticleStr) throws IOException {
-        // 1.准备Request
+        int pageNum = PageUtil.resolvePageNum(page);
+        int pageSize = PageUtil.resolvePageSize(size);
         SearchRequest request = new SearchRequest("langhaiblogs");
-        // 2.准备DSL
-        // 2.1.query
         if(StrUtil.isNotBlank(searchArticleStr)) {
             request.source()
                     .query(QueryBuilders.multiMatchQuery(searchArticleStr, "title", "author", "labelContent"));
@@ -260,12 +257,9 @@ public class ArticleServiceImpl implements ArticleService {
             request.source()
                     .query(QueryBuilders.matchAllQuery());
         }
-        // 2.2.分页 from、size
-        request.source().from((page - 1) * size).size(size);
-        // 3.发送请求
+        request.source().from(PageUtil.resolveOffset(pageNum, pageSize)).size(pageSize);
         SearchResponse response = restHighLevelClient.search(request, RequestOptions.DEFAULT);
-        // 4.解析响应
-        return handleResponse(response, size);
+        return handleResponse(response, pageSize);
     }
 
     /**
@@ -291,7 +285,7 @@ public class ArticleServiceImpl implements ArticleService {
             articles.add(article);
         }
         hashMap.put("list", articles);
-        hashMap.put("pages", (total + size - 1) / size);
+        hashMap.put("pages", PageUtil.resolvePages(total, size));
         return hashMap;
     }
 
@@ -371,16 +365,11 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public List<Article> topArticle(Integer page, String searchArticleStr, Long labelId) {
-        if (Integer.valueOf(1).equals(page) && StrUtil.isBlank(searchArticleStr)) {
-            if (Long.valueOf(0L).equals(labelId) || ObjectUtil.isNull(labelId)) {
-                List<Article> topArticleList = articleMapper.topArticle();
-                if (topArticleList.size() >= 3) {
-                    return topArticleList.subList(0, 3);
-                }
-                return topArticleList;
-            }
+        if (!PageUtil.matchTopArticleCondition(page, searchArticleStr, labelId)) {
+            return null;
         }
-        return null;
+        List<Article> topArticleList = articleMapper.topArticle();
+        return PageUtil.limit(topArticleList, 3);
     }
 
     @Override
