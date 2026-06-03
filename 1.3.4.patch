@@ -1,0 +1,43 @@
+diff --git a/README.md b/README.md
+index 7b52a00..2399086 100644
+--- a/README.md
++++ b/README.md
+@@ -33,6 +33,38 @@ redis minio elasticSearch rabbitMQ
+ 聚合搜索来自开源项目 [juso](https://github.com/yitd/juso.vip)  
+ 音乐播放器来自开源项目 [QPlayer](https://github.com/Jrohy/QPlayer)
+ 
++## Docker 环境配置
++
++### 新增文件
++- `Dockerfile` - 项目 Docker 配置文件
++- `.dockerignore` - Docker 构建忽略文件
++
++### 构建镜像
++```bash
++docker build -t langhaiblogs:latest .
++```
++
++### 运行容器
++```bash
++docker run -d -p 2086:2086 -p 2222:22 --name langhaiblogs-container langhaiblogs:latest
++```
++
++### 验证配置
++1. 确认容器内目录为 /app：
++```bash
++docker exec -it langhaiblogs-container pwd
++```
++
++2. 确认 SSH 服务可连接（默认 root 密码：trae123）：
++```bash
++ssh -p 2222 root@localhost
++```
++
++### 基础构建 vs 完整运行
++- **基础构建**：仅包含代码编译和 Maven 依赖，不启动外部服务（MySQL、Redis、ES、RabbitMQ、MinIO）
++- **完整运行**：需要配置并启动所有外部服务，修改 application.yml 中的相关配置参数
++
++
+ 基本组件：  
+ 关系型数据库 MySQL [MySQL 详细说明](http://www.langhai.cc/article/articleShow?id=53) 
+ 
