@@ -1,0 +1,216 @@
+diff --git a/sql/langhaiblogs.sql b/sql/langhaiblogs.sql
+index e2bae61..a247d7c 100644
+--- a/sql/langhaiblogs.sql
++++ b/sql/langhaiblogs.sql
+@@ -53,6 +53,17 @@ CREATE TABLE `article_comment`  (
+   PRIMARY KEY (`id`) USING BTREE
+ ) ENGINE = InnoDB AUTO_INCREMENT = 19 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章评论表' ROW_FORMAT = DYNAMIC;
+ 
++DROP TABLE IF EXISTS `article_like`;
++CREATE TABLE `article_like`  (
++  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '点赞id',
++  `article_id` bigint(20) NOT NULL COMMENT '文章id',
++  `user_id` bigint(20) NOT NULL COMMENT '用户id',
++  `create_time` datetime NOT NULL COMMENT '点赞时间',
++  PRIMARY KEY (`id`) USING BTREE,
++  UNIQUE KEY `uk_article_like_article_user` (`article_id`, `user_id`) USING BTREE,
++  KEY `idx_article_like_article_id` (`article_id`) USING BTREE
++) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章点赞表' ROW_FORMAT = DYNAMIC;
++
+ -- ----------------------------
+ -- Table structure for dev_log
+ -- ----------------------------
+diff --git a/src/main/resources/templates/blogs-new/read.html b/src/main/resources/templates/blogs-new/read.html
+index 71ffffb..b8c4589 100644
+--- a/src/main/resources/templates/blogs-new/read.html
++++ b/src/main/resources/templates/blogs-new/read.html
+@@ -55,6 +55,8 @@
+                                     </small>
+                                     <small class="ml10">围观群众：<i class="readcount" th:text="${article.heat}"></i></small>
+                                     <small class="ml10">更新于 <label th:text="${article.updateTimeShow}"></label> </small>
++                                    <small class="ml10">点赞：<i id="articleLikeCount">0</i></small>
++                                    <small class="ml10"><a href="javascript:void(0)" id="articleLikeAction">点赞</a></small>
+                                     <small class="ml10">
+                                         使用以前的显示 <a th:href="'/article/articleShow?id=' + ${article.id} + '&password=' + ${password}">以前的显示器</a>
+                                         图片单击可放大/缩小。
+@@ -168,6 +170,90 @@
+             $("code").addClass("hljs");
+         })
+ 
++        function renderArticleLike(data) {
++            $("#articleLikeCount").text(data.likeCount || 0);
++            $("#articleLikeAction").text(data.liked ? "取消点赞" : "点赞");
++            $("#articleLikeAction").data("liked", !!data.liked);
++        }
++
++        function showArticleLikeMessage(message, success) {
++            if (typeof layer !== "undefined") {
++                layer.msg(message, {
++                    icon: success ? 1 : 2,
++                    time: 2000
++                });
++                return;
++            }
++            alert(message);
++        }
++
++        function handleArticleLikeError(message) {
++            var resultMessage = message || "操作失败，请稍后重试。";
++            if (resultMessage.indexOf("请先登录") !== -1) {
++                showArticleLikeMessage(resultMessage, false);
++                setTimeout(function () {
++                    window.location.href = "/user/loginPage";
++                }, 800);
++                return;
++            }
++            showArticleLikeMessage(resultMessage, false);
++        }
++
++        function loadArticleLikeStatus() {
++            $.ajax({
++                url: "/articleLike/status",
++                async: true,
++                type: "GET",
++                data: {
++                    "articleId": $("#articleId").val()
++                },
++                success: function (data) {
++                    if (data.code == 200) {
++                        renderArticleLike(data.result || {});
++                    } else {
++                        handleArticleLikeError(data.message);
++                    }
++                },
++                error: function () {
++                    handleArticleLikeError();
++                }
++            })
++        }
++
++        $(function () {
++            loadArticleLikeStatus();
++            $("#articleLikeAction").on("click", function () {
++                var $button = $(this);
++                if ($button.data("loading")) {
++                    return;
++                }
++                $button.data("loading", true);
++                var liked = $button.data("liked") === true;
++                $.ajax({
++                    url: liked ? "/articleLike/cancel" : "/articleLike/like",
++                    async: true,
++                    type: "POST",
++                    data: {
++                        "articleId": $("#articleId").val()
++                    },
++                    success: function (data) {
++                        if (data.code == 200) {
++                            renderArticleLike(data.result || {});
++                            showArticleLikeMessage(data.message, true);
++                        } else {
++                            handleArticleLikeError(data.message);
++                        }
++                    },
++                    error: function () {
++                        handleArticleLikeError();
++                    },
++                    complete: function () {
++                        $button.data("loading", false);
++                    }
++                })
++            });
++        })
++
+         // 提交文章评论
+         $(function () {
+             $("#submitComment").on("click", function () {
+diff --git a/src/main/resources/templates/blogs/article/articleShow.html b/src/main/resources/templates/blogs/article/articleShow.html
+index 3cd8353..28b4f87 100644
+--- a/src/main/resources/templates/blogs/article/articleShow.html
++++ b/src/main/resources/templates/blogs/article/articleShow.html
+@@ -48,6 +48,8 @@
+ 									<span th:text="'浪海值：' + ${article.heat} + '度'"></span><br />
+ 									<span th:text="'文章标签：' + ${article.labelContent}"></span><br />
+ 									<span th:text="'文章摘要：' + ${article.abstractText}"></span><br />
++									<span>点赞数：<span id="articleLikeCount">0</span></span>
++									<a href="javascript:void(0)" class="button primary small" id="articleLikeAction">点赞</a><br />
+ 									<span>
+ 										使用新的显示器：<a th:href="'/article/articleShowNew?id=' + ${article.id} + '&password=' + ${password}">新的显示器</a>
+ 										<span>如果遇到图片单击即可放大/缩小。</span>
+@@ -124,6 +126,76 @@
+ 				$("img").addClass("image fit");
+ 			})
+ 
++			function renderArticleLike(data) {
++				$("#articleLikeCount").text(data.likeCount || 0);
++				$("#articleLikeAction").text(data.liked ? "取消点赞" : "点赞");
++				$("#articleLikeAction").data("liked", !!data.liked);
++			}
++
++			function handleArticleLikeError(message) {
++				if (message && message.indexOf("请先登录") !== -1) {
++					alert(message);
++					window.location.href = "/user/loginPage";
++					return;
++				}
++				$("#vCodeStatus").html(message || "操作失败，请稍后重试。");
++			}
++
++			function loadArticleLikeStatus() {
++				$.ajax({
++					url: "/articleLike/status",
++					async: true,
++					type: "GET",
++					data: {
++						"articleId": $("#articleId").val()
++					},
++					success: function (data) {
++						if (data.code == 200) {
++							renderArticleLike(data.result || {});
++						} else {
++							handleArticleLikeError(data.message);
++						}
++					},
++					error: function () {
++						handleArticleLikeError();
++					}
++				})
++			}
++
++			$(function () {
++				loadArticleLikeStatus();
++				$("#articleLikeAction").on("click", function () {
++					var $button = $(this);
++					if ($button.data("loading")) {
++						return;
++					}
++					$button.data("loading", true);
++					var liked = $button.data("liked") === true;
++					$.ajax({
++						url: liked ? "/articleLike/cancel" : "/articleLike/like",
++						async: true,
++						type: "POST",
++						data: {
++							"articleId": $("#articleId").val()
++						},
++						success: function (data) {
++							if (data.code == 200) {
++								renderArticleLike(data.result || {});
++								$("#vCodeStatus").html(data.message);
++							} else {
++								handleArticleLikeError(data.message);
++							}
++						},
++						error: function () {
++							handleArticleLikeError();
++						},
++						complete: function () {
++							$button.data("loading", false);
++						}
++					})
++				});
++			})
++
+ 			// 提交文章评论
+ 			$(function () {
+ 				$("#submitComment").on("click", function () {

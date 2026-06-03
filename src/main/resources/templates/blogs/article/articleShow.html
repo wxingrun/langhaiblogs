@@ -48,6 +48,8 @@
 									<span th:text="'浪海值：' + ${article.heat} + '度'"></span><br />
 									<span th:text="'文章标签：' + ${article.labelContent}"></span><br />
 									<span th:text="'文章摘要：' + ${article.abstractText}"></span><br />
+									<span>点赞数：<span id="articleLikeCount">0</span></span>
+									<a href="javascript:void(0)" class="button primary small" id="articleLikeAction">点赞</a><br />
 									<span>
 										使用新的显示器：<a th:href="'/article/articleShowNew?id=' + ${article.id} + '&password=' + ${password}">新的显示器</a>
 										<span>如果遇到图片单击即可放大/缩小。</span>
@@ -122,6 +124,76 @@
 			// 图片自适应处理
 			$(function (){
 				$("img").addClass("image fit");
+			})
+
+			function renderArticleLike(data) {
+				$("#articleLikeCount").text(data.likeCount || 0);
+				$("#articleLikeAction").text(data.liked ? "取消点赞" : "点赞");
+				$("#articleLikeAction").data("liked", !!data.liked);
+			}
+
+			function handleArticleLikeError(message) {
+				if (message && message.indexOf("请先登录") !== -1) {
+					alert(message);
+					window.location.href = "/user/loginPage";
+					return;
+				}
+				$("#vCodeStatus").html(message || "操作失败，请稍后重试。");
+			}
+
+			function loadArticleLikeStatus() {
+				$.ajax({
+					url: "/articleLike/status",
+					async: true,
+					type: "GET",
+					data: {
+						"articleId": $("#articleId").val()
+					},
+					success: function (data) {
+						if (data.code == 200) {
+							renderArticleLike(data.result || {});
+						} else {
+							handleArticleLikeError(data.message);
+						}
+					},
+					error: function () {
+						handleArticleLikeError();
+					}
+				})
+			}
+
+			$(function () {
+				loadArticleLikeStatus();
+				$("#articleLikeAction").on("click", function () {
+					var $button = $(this);
+					if ($button.data("loading")) {
+						return;
+					}
+					$button.data("loading", true);
+					var liked = $button.data("liked") === true;
+					$.ajax({
+						url: liked ? "/articleLike/cancel" : "/articleLike/like",
+						async: true,
+						type: "POST",
+						data: {
+							"articleId": $("#articleId").val()
+						},
+						success: function (data) {
+							if (data.code == 200) {
+								renderArticleLike(data.result || {});
+								$("#vCodeStatus").html(data.message);
+							} else {
+								handleArticleLikeError(data.message);
+							}
+						},
+						error: function () {
+							handleArticleLikeError();
+						},
+						complete: function () {
+							$button.data("loading", false);
+						}
+					})
+				});
 			})
 
 			// 提交文章评论

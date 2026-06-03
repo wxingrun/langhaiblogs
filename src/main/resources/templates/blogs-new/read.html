@@ -55,6 +55,8 @@
                                     </small>
                                     <small class="ml10">围观群众：<i class="readcount" th:text="${article.heat}"></i></small>
                                     <small class="ml10">更新于 <label th:text="${article.updateTimeShow}"></label> </small>
+                                    <small class="ml10">点赞：<i id="articleLikeCount">0</i></small>
+                                    <small class="ml10"><a href="javascript:void(0)" id="articleLikeAction">点赞</a></small>
                                     <small class="ml10">
                                         使用以前的显示 <a th:href="'/article/articleShow?id=' + ${article.id} + '&password=' + ${password}">以前的显示器</a>
                                         图片单击可放大/缩小。
@@ -166,6 +168,90 @@
         // 代码自适应处理
         $(function (){
             $("code").addClass("hljs");
+        })
+
+        function renderArticleLike(data) {
+            $("#articleLikeCount").text(data.likeCount || 0);
+            $("#articleLikeAction").text(data.liked ? "取消点赞" : "点赞");
+            $("#articleLikeAction").data("liked", !!data.liked);
+        }
+
+        function showArticleLikeMessage(message, success) {
+            if (typeof layer !== "undefined") {
+                layer.msg(message, {
+                    icon: success ? 1 : 2,
+                    time: 2000
+                });
+                return;
+            }
+            alert(message);
+        }
+
+        function handleArticleLikeError(message) {
+            var resultMessage = message || "操作失败，请稍后重试。";
+            if (resultMessage.indexOf("请先登录") !== -1) {
+                showArticleLikeMessage(resultMessage, false);
+                setTimeout(function () {
+                    window.location.href = "/user/loginPage";
+                }, 800);
+                return;
+            }
+            showArticleLikeMessage(resultMessage, false);
+        }
+
+        function loadArticleLikeStatus() {
+            $.ajax({
+                url: "/articleLike/status",
+                async: true,
+                type: "GET",
+                data: {
+                    "articleId": $("#articleId").val()
+                },
+                success: function (data) {
+                    if (data.code == 200) {
+                        renderArticleLike(data.result || {});
+                    } else {
+                        handleArticleLikeError(data.message);
+                    }
+                },
+                error: function () {
+                    handleArticleLikeError();
+                }
+            })
+        }
+
+        $(function () {
+            loadArticleLikeStatus();
+            $("#articleLikeAction").on("click", function () {
+                var $button = $(this);
+                if ($button.data("loading")) {
+                    return;
+                }
+                $button.data("loading", true);
+                var liked = $button.data("liked") === true;
+                $.ajax({
+                    url: liked ? "/articleLike/cancel" : "/articleLike/like",
+                    async: true,
+                    type: "POST",
+                    data: {
+                        "articleId": $("#articleId").val()
+                    },
+                    success: function (data) {
+                        if (data.code == 200) {
+                            renderArticleLike(data.result || {});
+                            showArticleLikeMessage(data.message, true);
+                        } else {
+                            handleArticleLikeError(data.message);
+                        }
+                    },
+                    error: function () {
+                        handleArticleLikeError();
+                    },
+                    complete: function () {
+                        $button.data("loading", false);
+                    }
+                })
+            });
         })
 
         // 提交文章评论

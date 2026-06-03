@@ -53,6 +53,17 @@ CREATE TABLE `article_comment`  (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 19 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章评论表' ROW_FORMAT = DYNAMIC;
 
+DROP TABLE IF EXISTS `article_like`;
+CREATE TABLE `article_like`  (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '点赞id',
+  `article_id` bigint(20) NOT NULL COMMENT '文章id',
+  `user_id` bigint(20) NOT NULL COMMENT '用户id',
+  `create_time` datetime NOT NULL COMMENT '点赞时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_article_like_article_user` (`article_id`, `user_id`) USING BTREE,
+  KEY `idx_article_like_article_id` (`article_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章点赞表' ROW_FORMAT = DYNAMIC;
+
 -- ----------------------------
 -- Table structure for dev_log
 -- ----------------------------
