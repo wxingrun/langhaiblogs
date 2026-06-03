@@ -1,0 +1,37 @@
+diff --git a/README.md b/README.md
+index 7b52a00..c36853f 100644
+--- a/README.md
++++ b/README.md
+@@ -50,4 +50,30 @@ INSERT INTO role VALUES(3, 'vip', NOW(), NULL);
+ 非关系型数据库 Redis  
+ 图片存储服务器 minio [minio 详细说明](http://www.langhai.cc/article/articleShow?id=54)   
+ 搜索引擎(可选) elasticSearch [elasticSearch 相关说明](http://www.langhai.cc/article/articleShow?id=55)   
+-消息队列（可选）rabbitMQ   <a href="https://langhai.cc/article/articleShow?id=33">rabbitMQ所有说明</a>
+\ No newline at end of file
++消息队列（可选）rabbitMQ   <a href="https://langhai.cc/article/articleShow?id=33">rabbitMQ所有说明</a>
++
++---
++
++### Docker 容器化环境配置（Trae/Docker rollout 支持）
++
++本项目已支持通过 Docker 容器化环境进行基础构建和调试。容器内置了 JDK 8 和 Maven 环境，并启动了 SSH 守护进程（OpenSSH Server），允许 Trae 通过 SSH 直接进入容器内部进行调试。
++
++**基础构建与完整运行的区别：**
++- **基础构建**：通过 `Dockerfile` 构建的容器仅提供代码的编译、打包环境（如 `mvn clean package -DskipTests`）。容器内部没有安装 MySQL、Redis、Elasticsearch、RabbitMQ、MinIO 等外部服务。此时运行 Spring Boot 会因为缺少外部服务而启动失败，但容器会保持存活以供 SSH 调试。
++- **完整运行**：需要依赖完整的外部服务组件（MySQL, Redis, MinIO, ES, RabbitMQ）。若需完整运行，请修改 `application.yml` 连接到实际运行的这些服务（例如通过 Docker Compose 或者外部独立部署的服务）。
++
++**构建和运行 Docker 环境命令：**
++
++1. 构建镜像：
++```bash
++docker build -t langhaiblogs-env .
++```
++
++2. 运行容器：
++```bash
++docker run -d -p 2222:22 -p 2086:2086 --name langhaiblogs-container langhaiblogs-env
++```
++
++3. 验证连接：
++- 确认容器内目录为 `/app`： `docker exec langhaiblogs-container pwd`
++- 验证 SSH 服务可连接： `ssh root@localhost -p 2222` （如果提示密码，默认环境配置了免密或需配置 authorized_keys，但当前镜像允许 root 登录）
