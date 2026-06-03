@@ -171,17 +171,29 @@
         // 提交文章评论
         $(function () {
             $("#submitComment").on("click", function () {
+                var content = $("#content").val();
+                if (!content || $.trim(content) === '') {
+                    layer.msg("评论内容不能为空或只包含空格。", {
+                        icon: 2,
+                        time: 2000
+                    });
+                    return;
+                }
+                var $btn = $(this);
+                $btn.prop("disabled", true);
+                $btn.addClass("layui-btn-disabled");
+                $btn.text("提交中...");
                 $.ajax({
                     url: "/article/submitComment",
                     async: true,
                     type: "POST",
                     data: {
                         "articleId": $("#articleId").val(),
-                        "content": $("#content").val()
+                        "content": $.trim(content)
                     },
                     success: function (data) {
-                        $("#content").val('');
                         if (data.code == 200) {
+                            $("#content").val('');
                             layer.msg(data.message, {
                                 icon: 1,
                                 time: 2000
@@ -194,6 +206,11 @@
                                 time: 2000
                             });
                         }
+                    },
+                    complete: function () {
+                        $btn.prop("disabled", false);
+                        $btn.removeClass("layui-btn-disabled");
+                        $btn.text("提交评论");
                     }
                 })
             });

@@ -355,6 +355,7 @@ public class ArticleServiceImpl implements ArticleService {
         if (ObjectUtil.isNull(articleId) || StrUtil.isBlank(content)) {
             throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_PARAM_FAIL_00013);
         }
+        content = content.trim();
         // 当前用户对此篇文章只能评价三条
         List<ArticleComment> list = articleCommentService.list(Wrappers.<ArticleComment>lambdaQuery()
                 .eq(ArticleComment::getUserId, user.getId())

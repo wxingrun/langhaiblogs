@@ -1,0 +1,103 @@
+diff --git a/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java b/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
+index f611899..daeb93a 100644
+--- a/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
++++ b/src/main/java/cc/langhai/service/impl/ArticleServiceImpl.java
+@@ -355,6 +355,7 @@ public class ArticleServiceImpl implements ArticleService {
+         if (ObjectUtil.isNull(articleId) || StrUtil.isBlank(content)) {
+             throw new BusinessException(ArticleReturnCode.ARTICLE_SUBMIT_COMMENT_PARAM_FAIL_00013);
+         }
++        content = content.trim();
+         // 当前用户对此篇文章只能评价三条
+         List<ArticleComment> list = articleCommentService.list(Wrappers.<ArticleComment>lambdaQuery()
+                 .eq(ArticleComment::getUserId, user.getId())
+diff --git a/src/main/resources/templates/blogs-new/read.html b/src/main/resources/templates/blogs-new/read.html
+index 71ffffb..0d6ec36 100644
+--- a/src/main/resources/templates/blogs-new/read.html
++++ b/src/main/resources/templates/blogs-new/read.html
+@@ -171,17 +171,29 @@
+         // 提交文章评论
+         $(function () {
+             $("#submitComment").on("click", function () {
++                var content = $("#content").val();
++                if (!content || $.trim(content) === '') {
++                    layer.msg("评论内容不能为空或只包含空格。", {
++                        icon: 2,
++                        time: 2000
++                    });
++                    return;
++                }
++                var $btn = $(this);
++                $btn.prop("disabled", true);
++                $btn.addClass("layui-btn-disabled");
++                $btn.text("提交中...");
+                 $.ajax({
+                     url: "/article/submitComment",
+                     async: true,
+                     type: "POST",
+                     data: {
+                         "articleId": $("#articleId").val(),
+-                        "content": $("#content").val()
++                        "content": $.trim(content)
+                     },
+                     success: function (data) {
+-                        $("#content").val('');
+                         if (data.code == 200) {
++                            $("#content").val('');
+                             layer.msg(data.message, {
+                                 icon: 1,
+                                 time: 2000
+@@ -194,6 +206,11 @@
+                                 time: 2000
+                             });
+                         }
++                    },
++                    complete: function () {
++                        $btn.prop("disabled", false);
++                        $btn.removeClass("layui-btn-disabled");
++                        $btn.text("提交评论");
+                     }
+                 })
+             });
+diff --git a/src/main/resources/templates/blogs/article/articleShow.html b/src/main/resources/templates/blogs/article/articleShow.html
+index 3cd8353..7584987 100644
+--- a/src/main/resources/templates/blogs/article/articleShow.html
++++ b/src/main/resources/templates/blogs/article/articleShow.html
+@@ -127,17 +127,25 @@
+ 			// 提交文章评论
+ 			$(function () {
+ 				$("#submitComment").on("click", function () {
++					var content = $("#content").val();
++					if (!content || $.trim(content) === '') {
++						$("#vCodeStatus").html("评论内容不能为空或只包含空格。");
++						return;
++					}
++					var $btn = $(this);
++					$btn.css("pointer-events", "none");
++					$btn.text("提交中...");
+ 					$.ajax({
+ 						url: "/article/submitComment",
+ 						async: true,
+ 						type: "POST",
+ 						data: {
+ 							"articleId": $("#articleId").val(),
+-							"content": $("#content").val()
++							"content": $.trim(content)
+ 						},
+ 						success: function (data) {
+-							$("#content").val('');
+ 							if(data.code == 200){
++								$("#content").val('');
+ 								$("#vCodeStatus").html(data.message);
+ 								setTimeout(function(){
+ 									window.location.reload();
+@@ -145,6 +153,10 @@
+ 							}else {
+ 								$("#vCodeStatus").html(data.message);
+ 							}
++						},
++						complete: function () {
++							$btn.css("pointer-events", "auto");
++							$btn.text("提交评论");
+ 						}
+ 					})
+ 				});
