@@ -1,0 +1,228 @@
+diff --git a/sql/langhaiblogs.sql b/sql/langhaiblogs.sql
+index e2bae61..4c61773 100644
+--- a/sql/langhaiblogs.sql
++++ b/sql/langhaiblogs.sql
+@@ -224,4 +224,17 @@ CREATE TABLE `visit`  (
+   PRIMARY KEY (`id`) USING BTREE
+ ) ENGINE = InnoDB AUTO_INCREMENT = 175721 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+ 
++-- ----------------------------
++-- Table structure for article_like
++-- ----------------------------
++DROP TABLE IF EXISTS `article_like`;
++CREATE TABLE `article_like` (
++    `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '点赞记录id',
++    `article_id` bigint(20) NOT NULL COMMENT '文章id',
++    `user_id` bigint(20) NOT NULL COMMENT '用户id',
++    `create_time` datetime NOT NULL COMMENT '点赞时间',
++    PRIMARY KEY (`id`) USING BTREE,
++    UNIQUE KEY `uk_article_user` (`article_id`, `user_id`) USING BTREE
++) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文章点赞表' ROW_FORMAT = DYNAMIC;
++
+ SET FOREIGN_KEY_CHECKS = 1;
+diff --git a/src/main/java/cc/langhai/controller/article/ArticleController.java b/src/main/java/cc/langhai/controller/article/ArticleController.java
+index f6783ab..4d29e11 100644
+--- a/src/main/java/cc/langhai/controller/article/ArticleController.java
++++ b/src/main/java/cc/langhai/controller/article/ArticleController.java
+@@ -7,6 +7,7 @@ import cc.langhai.dto.ArticleDTO;
+ import cc.langhai.response.ArticleReturnCode;
+ import cc.langhai.response.ResultResponse;
+ import cc.langhai.service.*;
++import cc.langhai.service.ArticleLikeService;
+ import cn.hutool.core.collection.CollUtil;
+ import cn.hutool.core.collection.CollectionUtil;
+ import cn.hutool.core.util.ObjectUtil;
+@@ -55,6 +56,9 @@ public class ArticleController {
+     @Autowired
+     private RegisterService registerService;
+ 
++    @Autowired
++    private ArticleLikeService articleLikeService;
++
+     /**
+      * 跳转到文章新发布页面
+      *
+@@ -190,6 +194,8 @@ public class ArticleController {
+             model.addAttribute("article", articleService.getArticleHeat(article));
+             model.addAttribute("password", password);
+             model.addAttribute("commentList", articleCommentService.getCommentByArticleId(id));
++            model.addAttribute("likeCount", articleLikeService.getLikeCount(id));
++            model.addAttribute("isLiked", articleLikeService.isLiked(id));
+             return "blogs/article/articleShow";
+         }
+         return "error/articleShow";
+@@ -360,6 +366,8 @@ public class ArticleController {
+             model.addAttribute("article", articleService.getArticleHeat(article));
+             model.addAttribute("password", password);
+             model.addAttribute("commentList", articleCommentService.getCommentByArticleId(id));
++            model.addAttribute("likeCount", articleLikeService.getLikeCount(id));
++            model.addAttribute("isLiked", articleLikeService.isLiked(id));
+             // 获取热点前十文章
+             Set<Article> articleHeatTop = articleService.getArticleHeatTop();
+             model.addAttribute("articleHeatTop", articleHeatTop);
+diff --git a/src/main/java/cc/langhai/domain/Article.java b/src/main/java/cc/langhai/domain/Article.java
+index 39a6cfa..9a615dc 100644
+--- a/src/main/java/cc/langhai/domain/Article.java
++++ b/src/main/java/cc/langhai/domain/Article.java
+@@ -79,6 +79,11 @@ public class Article implements Comparable {
+      */
+     private Integer commentCount;
+ 
++    /**
++     * 文章点赞数
++     */
++    private Integer likeCount;
++
+     @Override
+     public int compareTo(Object o) {
+         if(o instanceof Article){
+diff --git a/src/main/resources/templates/blogs-new/read.html b/src/main/resources/templates/blogs-new/read.html
+index 71ffffb..7ad3a37 100644
+--- a/src/main/resources/templates/blogs-new/read.html
++++ b/src/main/resources/templates/blogs-new/read.html
+@@ -69,6 +69,11 @@
+                             <div class="content artiledetail" style="border-bottom: 1px solid #e1e2e0; padding-bottom: 20px;">
+                                 <div th:utext="${article.html}">
+ 
++                                </div>
++                                <div style="margin: 20px 0; padding: 10px 0; border-top: 1px solid #e1e2e0; border-bottom: 1px solid #e1e2e0;">
++                                    <span id="likeCount" th:text="${likeCount}" style="font-size: 20px; margin-right: 10px; color: #333;">0</span>
++                                    <button id="likeBtn" th:if="${!isLiked}" class="layui-btn layui-btn-primary" onclick="likeArticle()">点赞</button>
++                                    <button id="unlikeBtn" th:if="${isLiked}" class="layui-btn layui-btn-normal" onclick="unlikeArticle()">已点赞</button>
+                                 </div>
+                                 <div class="copyright mt20">
+                                     <p class="f-toe fc-black">
+@@ -211,6 +216,64 @@
+                 $(this).attr("style", "width: 100%;");
+             }
+         })
++
++        // 点赞文章
++        function likeArticle() {
++            $.ajax({
++                url: "/articleLike/like",
++                async: true,
++                type: "POST",
++                data: {
++                    "articleId": $("#articleId").val()
++                },
++                success: function (data) {
++                    if (data.code == 200) {
++                        layer.msg(data.message, {
++                            icon: 1,
++                            time: 2000
++                        });
++                        var currentCount = parseInt($("#likeCount").text());
++                        $("#likeCount").text(currentCount + 1);
++                        $("#likeBtn").hide();
++                        $("#unlikeBtn").show();
++                    } else {
++                        layer.msg(data.message, {
++                            icon: 2,
++                            time: 2000
++                        });
++                    }
++                }
++            })
++        }
++
++        // 取消点赞文章
++        function unlikeArticle() {
++            $.ajax({
++                url: "/articleLike/unlike",
++                async: true,
++                type: "POST",
++                data: {
++                    "articleId": $("#articleId").val()
++                },
++                success: function (data) {
++                    if (data.code == 200) {
++                        layer.msg(data.message, {
++                            icon: 1,
++                            time: 2000
++                        });
++                        var currentCount = parseInt($("#likeCount").text());
++                        $("#likeCount").text(currentCount - 1);
++                        $("#unlikeBtn").hide();
++                        $("#likeBtn").show();
++                    } else {
++                        layer.msg(data.message, {
++                            icon: 2,
++                            time: 2000
++                        });
++                    }
++                }
++            })
++        }
+     </script>
+     <script>
+         $(function() {
+diff --git a/src/main/resources/templates/blogs/article/articleShow.html b/src/main/resources/templates/blogs/article/articleShow.html
+index 3cd8353..f5f8b3d 100644
+--- a/src/main/resources/templates/blogs/article/articleShow.html
++++ b/src/main/resources/templates/blogs/article/articleShow.html
+@@ -55,6 +55,11 @@
+ 								</div>
+ 								<div th:utext="${article.html}">
+ 
++								</div>
++								<div style="margin: 20px 0;">
++									<span id="likeCount" th:text="${likeCount}" style="font-size: 18px; margin-right: 10px;">0</span>
++									<button id="likeBtn" th:if="${!isLiked}" class="button primary" onclick="likeArticle()">点赞</button>
++									<button id="unlikeBtn" th:if="${isLiked}" class="button" onclick="unlikeArticle()">已点赞</button>
+ 								</div>
+ 								<div id="vcomments"></div>
+ 								<div>
+@@ -162,6 +167,52 @@
+ 					$(this).attr("style", "width: 100%;");
+ 				}
+ 			})
++
++			// 点赞文章
++			function likeArticle() {
++				$.ajax({
++					url: "/articleLike/like",
++					async: true,
++					type: "POST",
++					data: {
++						"articleId": $("#articleId").val()
++					},
++					success: function (data) {
++						if(data.code == 200){
++							$("#vCodeStatus").html(data.message);
++							var currentCount = parseInt($("#likeCount").text());
++							$("#likeCount").text(currentCount + 1);
++							$("#likeBtn").hide();
++							$("#unlikeBtn").show();
++						}else {
++							$("#vCodeStatus").html(data.message);
++						}
++					}
++				})
++			}
++
++			// 取消点赞文章
++			function unlikeArticle() {
++				$.ajax({
++					url: "/articleLike/unlike",
++					async: true,
++					type: "POST",
++					data: {
++						"articleId": $("#articleId").val()
++					},
++					success: function (data) {
++						if(data.code == 200){
++							$("#vCodeStatus").html(data.message);
++							var currentCount = parseInt($("#likeCount").text());
++							$("#likeCount").text(currentCount - 1);
++							$("#unlikeBtn").hide();
++							$("#likeBtn").show();
++						}else {
++							$("#vCodeStatus").html(data.message);
++						}
++					}
++				})
++			}
+ 		</script>
+ 		<script>
+ 			$(function() {

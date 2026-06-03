@@ -70,6 +70,11 @@
                                 <div th:utext="${article.html}">
 
                                 </div>
+                                <div style="margin: 20px 0; padding: 10px 0; border-top: 1px solid #e1e2e0; border-bottom: 1px solid #e1e2e0;">
+                                    <span id="likeCount" th:text="${likeCount}" style="font-size: 20px; margin-right: 10px; color: #333;">0</span>
+                                    <button id="likeBtn" th:if="${!isLiked}" class="layui-btn layui-btn-primary" onclick="likeArticle()">点赞</button>
+                                    <button id="unlikeBtn" th:if="${isLiked}" class="layui-btn layui-btn-normal" onclick="unlikeArticle()">已点赞</button>
+                                </div>
                                 <div class="copyright mt20">
                                     <p class="f-toe fc-black">
                                         非特殊说明，本文版权归 <span th:text="${article.author}"></span> 所有，转载请注明出处。
@@ -211,6 +216,64 @@
                 $(this).attr("style", "width: 100%;");
             }
         })
+
+        // 点赞文章
+        function likeArticle() {
+            $.ajax({
+                url: "/articleLike/like",
+                async: true,
+                type: "POST",
+                data: {
+                    "articleId": $("#articleId").val()
+                },
+                success: function (data) {
+                    if (data.code == 200) {
+                        layer.msg(data.message, {
+                            icon: 1,
+                            time: 2000
+                        });
+                        var currentCount = parseInt($("#likeCount").text());
+                        $("#likeCount").text(currentCount + 1);
+                        $("#likeBtn").hide();
+                        $("#unlikeBtn").show();
+                    } else {
+                        layer.msg(data.message, {
+                            icon: 2,
+                            time: 2000
+                        });
+                    }
+                }
+            })
+        }
+
+        // 取消点赞文章
+        function unlikeArticle() {
+            $.ajax({
+                url: "/articleLike/unlike",
+                async: true,
+                type: "POST",
+                data: {
+                    "articleId": $("#articleId").val()
+                },
+                success: function (data) {
+                    if (data.code == 200) {
+                        layer.msg(data.message, {
+                            icon: 1,
+                            time: 2000
+                        });
+                        var currentCount = parseInt($("#likeCount").text());
+                        $("#likeCount").text(currentCount - 1);
+                        $("#unlikeBtn").hide();
+                        $("#likeBtn").show();
+                    } else {
+                        layer.msg(data.message, {
+                            icon: 2,
+                            time: 2000
+                        });
+                    }
+                }
+            })
+        }
     </script>
     <script>
         $(function() {

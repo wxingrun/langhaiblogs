@@ -79,6 +79,11 @@ public class Article implements Comparable {
      */
     private Integer commentCount;
 
+    /**
+     * 文章点赞数
+     */
+    private Integer likeCount;
+
     @Override
     public int compareTo(Object o) {
         if(o instanceof Article){

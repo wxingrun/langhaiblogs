@@ -7,6 +7,7 @@ import cc.langhai.dto.ArticleDTO;
 import cc.langhai.response.ArticleReturnCode;
 import cc.langhai.response.ResultResponse;
 import cc.langhai.service.*;
+import cc.langhai.service.ArticleLikeService;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
@@ -54,6 +55,9 @@ public class ArticleController {
 
     @Autowired
     private RegisterService registerService;
+
+    @Autowired
+    private ArticleLikeService articleLikeService;
 
     /**
      * 跳转到文章新发布页面
@@ -190,6 +194,8 @@ public class ArticleController {
             model.addAttribute("article", articleService.getArticleHeat(article));
             model.addAttribute("password", password);
             model.addAttribute("commentList", articleCommentService.getCommentByArticleId(id));
+            model.addAttribute("likeCount", articleLikeService.getLikeCount(id));
+            model.addAttribute("isLiked", articleLikeService.isLiked(id));
             return "blogs/article/articleShow";
         }
         return "error/articleShow";
@@ -360,6 +366,8 @@ public class ArticleController {
             model.addAttribute("article", articleService.getArticleHeat(article));
             model.addAttribute("password", password);
             model.addAttribute("commentList", articleCommentService.getCommentByArticleId(id));
+            model.addAttribute("likeCount", articleLikeService.getLikeCount(id));
+            model.addAttribute("isLiked", articleLikeService.isLiked(id));
             // 获取热点前十文章
             Set<Article> articleHeatTop = articleService.getArticleHeatTop();
             model.addAttribute("articleHeatTop", articleHeatTop);

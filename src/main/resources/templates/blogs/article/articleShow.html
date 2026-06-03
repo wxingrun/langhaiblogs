@@ -56,6 +56,11 @@
 								<div th:utext="${article.html}">
 
 								</div>
+								<div style="margin: 20px 0;">
+									<span id="likeCount" th:text="${likeCount}" style="font-size: 18px; margin-right: 10px;">0</span>
+									<button id="likeBtn" th:if="${!isLiked}" class="button primary" onclick="likeArticle()">点赞</button>
+									<button id="unlikeBtn" th:if="${isLiked}" class="button" onclick="unlikeArticle()">已点赞</button>
+								</div>
 								<div id="vcomments"></div>
 								<div>
 									<p id="vCodeStatus"></p>
@@ -162,6 +167,52 @@
 					$(this).attr("style", "width: 100%;");
 				}
 			})
+
+			// 点赞文章
+			function likeArticle() {
+				$.ajax({
+					url: "/articleLike/like",
+					async: true,
+					type: "POST",
+					data: {
+						"articleId": $("#articleId").val()
+					},
+					success: function (data) {
+						if(data.code == 200){
+							$("#vCodeStatus").html(data.message);
+							var currentCount = parseInt($("#likeCount").text());
+							$("#likeCount").text(currentCount + 1);
+							$("#likeBtn").hide();
+							$("#unlikeBtn").show();
+						}else {
+							$("#vCodeStatus").html(data.message);
+						}
+					}
+				})
+			}
+
+			// 取消点赞文章
+			function unlikeArticle() {
+				$.ajax({
+					url: "/articleLike/unlike",
+					async: true,
+					type: "POST",
+					data: {
+						"articleId": $("#articleId").val()
+					},
+					success: function (data) {
+						if(data.code == 200){
+							$("#vCodeStatus").html(data.message);
+							var currentCount = parseInt($("#likeCount").text());
+							$("#likeCount").text(currentCount - 1);
+							$("#unlikeBtn").hide();
+							$("#likeBtn").show();
+						}else {
+							$("#vCodeStatus").html(data.message);
+						}
+					}
+				})
+			}
 		</script>
 		<script>
 			$(function() {
